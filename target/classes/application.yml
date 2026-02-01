@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: canteen-ordering-system
+  
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/canteen_ordering_system?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # Redis配置
+ # redis:
+ #   host: localhost
+ #  port: 6379
+ #   password: 
+ #   database: 0
+  
+  # Spring Security配置
+  
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.canteen.entity
+  global-config:
+    db-config:
+      id-type: AUTO
+      logic-delete-value: 0
+      logic-not-delete-value: 1
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# 日志配置
+logging:
+  level:
+    org.springframework.web: debug
+    com.canteen: debug
+
+# JWT配置
+jwt:
+  secret: canteen_ordering_system_secret_key
+  expiration: 86400 # 24小时
+  header: Authorization
+
+# Swagger配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
