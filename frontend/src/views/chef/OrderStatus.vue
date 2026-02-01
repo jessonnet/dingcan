@@ -15,34 +15,26 @@
         </div>
       </template>
       <div class="order-status-content">
-        <div class="total-count">
-          <el-tag size="large" type="info">总计：{{ totalCount }} 份</el-tag>
+        <div class="meal-type-summary">
+          <div v-for="(mealTypeOrder, key) in mealTypeOrders" :key="key" class="meal-type-summary-item">
+            <el-tag size="large" :type="getMealTypeTagType(mealTypeOrder.mealType.name)">
+              {{ mealTypeOrder.mealType.name }}：{{ mealTypeOrder.count }} 份
+            </el-tag>
+          </div>
         </div>
         <div class="meal-type-orders">
           <el-collapse v-model="activeNames">
             <el-collapse-item
               v-for="(mealTypeOrder, key) in mealTypeOrders"
               :key="key"
-              :title="mealTypeOrder.mealType.name + ' - ¥' + mealTypeOrder.mealType.price + '（' + mealTypeOrder.count + ' 份）'"
+              :title="mealTypeOrder.mealType.name + '（' + mealTypeOrder.count + ' 份）'"
               :name="key"
             >
-              <el-table :data="mealTypeOrder.orders" style="width: 100%">
-                <el-table-column prop="name" label="姓名" width="120">
-                  <template #default="scope">
-                    {{ scope.row.name }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="department" label="部门" width="150">
-                  <template #default="scope">
-                    {{ scope.row.department }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="username" label="用户名">
-                  <template #default="scope">
-                    {{ scope.row.username }}
-                  </template>
-                </el-table-column>
-              </el-table>
+              <div class="order-names-container">
+                <div v-for="order in mealTypeOrder.orders" :key="order.id" class="order-name-item">
+                  {{ order.name }}
+                </div>
+              </div>
             </el-collapse-item>
           </el-collapse>
         </div>
@@ -61,6 +53,16 @@ const orderDate = ref(dayjs().format('YYYY-MM-DD'))
 const mealTypeOrders = ref({})
 const totalCount = ref(0)
 const activeNames = ref([])
+
+const getMealTypeTagType = (mealTypeName) => {
+  const tagTypes = {
+    '早餐': 'warning',
+    '午餐': 'success',
+    '晚餐': 'primary',
+    '夜宵': 'danger'
+  }
+  return tagTypes[mealTypeName] || 'info'
+}
 
 const loadOrderStatus = async () => {
   try {
@@ -110,8 +112,19 @@ onMounted(() => {
   padding-top: 20px;
 }
 
-.total-count {
+.meal-type-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+}
+
+.meal-type-summary-item {
+  display: flex;
+  align-items: center;
 }
 
 .meal-type-orders {
@@ -131,10 +144,54 @@ onMounted(() => {
 .el-collapse-item__header {
   background-color: #f5f7fa;
   font-weight: 500;
+  font-size: 15px;
 }
 
 .el-collapse-item__content {
-  padding: 10px;
+  padding: 16px;
   background-color: #fff;
+}
+
+.order-names-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.order-name-item {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.order-name-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+  .meal-type-summary {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .meal-type-summary-item {
+    width: 100%;
+  }
+
+  .order-names-container {
+    gap: 8px;
+  }
+
+  .order-name-item {
+    padding: 5px 12px;
+    font-size: 13px;
+  }
 }
 </style>

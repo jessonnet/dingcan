@@ -8,15 +8,6 @@
       </template>
       <div class="order-content">
         <el-form :model="orderForm" :rules="rules" ref="orderFormRef" label-width="100px">
-          <el-form-item label="订餐日期" prop="orderDate">
-            <el-date-picker
-              v-model="orderForm.orderDate"
-              type="date"
-              placeholder="选择订餐日期"
-              :disabled-date="disabledDate"
-              style="width: 100%"
-            />
-          </el-form-item>
           <el-form-item label="餐食类型" prop="mealTypeId">
             <el-select v-model="orderForm.mealTypeId" placeholder="选择餐食类型" style="width: 100%">
               <el-option
@@ -27,178 +18,175 @@
               />
             </el-select>
           </el-form-item>
+          <el-form-item label="订餐日期" prop="orderDates">
+            <el-date-picker
+              v-model="orderForm.orderDates"
+              type="dates"
+              placeholder="选择多个订餐日期"
+              :disabled-date="disabledDate"
+              style="width: 100%"
+              multiple
+              clearable
+            />
+          </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleSubmit">提交订单</el-button>
+            <el-button type="primary" @click="handleSubmit" :loading="submitting">提交订单</el-button>
+            <el-button @click="handleReset">重置</el-button>
           </el-form-item>
         </el-form>
+
+        <div v-if="selectedDatesInfo.length > 0" class="selected-dates-info">
+          <el-divider content-position="left">已选择的日期</el-divider>
+          <el-table :data="selectedDatesInfo" style="width: 100%" size="small">
+            <el-table-column prop="date" label="日期" width="180" />
+            <el-table-column prop="mealType" label="餐食类型" />
+            <el-table-column prop="price" label="价格" width="100" />
+          </el-table>
+          <div class="total-price">
+            <el-tag type="success" size="large">总计：¥{{ totalPrice }}</el-tag>
+          </div>
+        </div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 
-console.log('Order.vue 组件加载成功')
-console.log('axios:', axios)
-console.log('axios.defaults:', axios.defaults)
-console.log('axios.defaults.baseURL:', axios.defaults.baseURL)
-console.log('ElMessage:', ElMessage)
-console.log('dayjs:', dayjs)
-
 const orderFormRef = ref(null)
+const submitting = ref(false)
 const orderForm = ref({
-  orderDate: '',
+  orderDates: [],
   mealTypeId: ''
 })
 
-// 监听订单日期变化
-watch(
-  () => orderForm.value.orderDate,
-  (newValue, oldValue) => {
-    console.log('订单日期变化:', oldValue, '->', newValue)
-    console.log('订单日期类型:', typeof newValue)
-    console.log('订单日期值:', newValue)
-  }
-)
-
-// 监听餐食类型变化
-watch(
-  () => orderForm.value.mealTypeId,
-  (newValue, oldValue) => {
-    console.log('餐食类型变化:', oldValue, '->', newValue)
-    console.log('餐食类型类型:', typeof newValue)
-    console.log('餐食类型值:', newValue)
-  }
-)
-
 const rules = {
-  orderDate: [
-    { required: true, message: '请选择订餐日期', trigger: 'change' }
-  ],
   mealTypeId: [
     { required: true, message: '请选择餐食类型', trigger: 'change' }
+  ],
+  orderDates: [
+    { required: true, message: '请选择至少一个订餐日期', trigger: 'change' }
   ]
 }
 
 const mealTypes = ref([])
-const canSubmit = computed(() => {
-  // 当订单日期和餐食类型都选择后，才能提交
-  const result = !!orderForm.value.orderDate && !!orderForm.value.mealTypeId
-  console.log('canSubmit 计算结果:', result)
-  console.log('订单日期:', orderForm.value.orderDate)
-  console.log('订单日期类型:', typeof orderForm.value.orderDate)
-  console.log('餐食类型:', orderForm.value.mealTypeId)
-  console.log('餐食类型类型:', typeof orderForm.value.mealTypeId)
-  return result
+
+const selectedDatesInfo = computed(() => {
+  if (!orderForm.value.orderDates || orderForm.value.orderDates.length === 0) {
+    return []
+  }
+
+  const selectedMealType = mealTypes.value.find(mt => mt.id === orderForm.value.mealTypeId)
+  if (!selectedMealType) {
+    return []
+  }
+
+  return orderForm.value.orderDates.map(date => {
+    const dateStr = dayjs(date).format('YYYY-MM-DD')
+    return {
+      date: dateStr,
+      mealType: selectedMealType.name,
+      price: selectedMealType.price
+    }
+  })
+})
+
+const totalPrice = computed(() => {
+  if (selectedDatesInfo.value.length === 0) {
+    return 0
+  }
+  return selectedDatesInfo.value.reduce((sum, item) => sum + item.price, 0)
 })
 
 const disabledDate = (time) => {
-  // 只能选择明天及以后的日期
   const today = dayjs().startOf('day')
   const tomorrow = today.add(1, 'day')
   return dayjs(time).isBefore(tomorrow)
 }
 
-const handleSubmit = () => {
-  console.log('handleSubmit 函数被调用')
-  
-  // 检查订单日期和餐食类型是否选择
-  if (!orderForm.value.orderDate) {
-    console.error('订单日期未选择')
-    ElMessage.error('请选择订餐日期')
+const handleReset = () => {
+  orderForm.value = {
+    orderDates: [],
+    mealTypeId: ''
+  }
+  if (orderFormRef.value) {
+    orderFormRef.value.resetFields()
+  }
+}
+
+const handleSubmit = async () => {
+  if (!orderFormRef.value) return
+
+  try {
+    await orderFormRef.value.validate()
+  } catch (error) {
     return
   }
-  
+
+  if (!orderForm.value.orderDates || orderForm.value.orderDates.length === 0) {
+    ElMessage.error('请选择至少一个订餐日期')
+    return
+  }
+
   if (!orderForm.value.mealTypeId) {
-    console.error('餐食类型未选择')
     ElMessage.error('请选择餐食类型')
     return
   }
-  
-  // 将日期对象转换为字符串格式
-  let orderDateStr = ''
+
+  submitting.value = true
+
   try {
-    if (typeof orderForm.value.orderDate === 'string') {
-      orderDateStr = orderForm.value.orderDate
-    } else {
-      orderDateStr = dayjs(orderForm.value.orderDate).format('YYYY-MM-DD')
-    }
-    console.log('订单日期字符串:', orderDateStr)
-  } catch (error) {
-    console.error('格式化日期错误:', error)
-    ElMessage.error('日期格式错误，请重新选择')
-    return
-  }
-  
-  // 检查是否可以预订
-  console.log('开始发送 can-order 请求...')
-  const fullCanOrderUrl = '/api/order/can-order?orderDate=' + encodeURIComponent(orderDateStr)
-  console.log('完整的 can-order 请求 URL:', fullCanOrderUrl)
-  
-  axios.get(fullCanOrderUrl)
-    .then(response => {
-      console.log('can-order 请求响应:', response)
-      if (response.success && response.canOrder) {
-        console.log('可以预订，开始创建订单...')
-        
-        axios.post('/api/order/create', {
-          mealTypeId: orderForm.value.mealTypeId,
-          orderDate: orderDateStr
-        })
-        .then(response => {
-          console.log('create 请求响应:', response)
-          if (response.success) {
-            console.log('订餐成功')
-            ElMessage.success(response.message)
-            orderForm.value = {
-              orderDate: '',
-              mealTypeId: ''
-            }
-            if (orderFormRef.value) {
-              orderFormRef.value.resetFields()
-            }
-          } else {
-            console.log('订餐失败')
-            ElMessage.error(response.message)
-          }
-        })
-        .catch(error => {
-          console.error('创建订单请求错误:', error)
-          console.error('创建订单请求错误详情:', error.response)
-          ElMessage.error('创建订单失败，请检查网络连接')
-        })
+    const orderDateStrs = orderForm.value.orderDates.map(date => dayjs(date).format('YYYY-MM-DD'))
+
+    const response = await axios.post('/api/order/batch-create', {
+      mealTypeId: orderForm.value.mealTypeId,
+      orderDates: orderDateStrs
+    })
+
+    if (response.success) {
+      const successCount = response.successCount || 0
+      const failCount = response.failCount || 0
+
+      if (failCount === 0) {
+        ElMessage.success(response.message || '订餐成功')
+      } else if (successCount === 0) {
+        ElMessage.error(response.message || '订餐失败')
       } else {
-        console.log('不能预订')
-        ElMessage.error('超过预订时间，无法预订')
+        ElMessage.warning(response.message || '部分订餐成功')
       }
-    })
-    .catch(error => {
-      console.error('网络请求失败:', error)
-      console.error('网络请求失败详情:', error.response)
-      ElMessage.error('网络请求失败，请检查网络连接')
-    })
+
+      orderForm.value = {
+        orderDates: [],
+        mealTypeId: ''
+      }
+      if (orderFormRef.value) {
+        orderFormRef.value.resetFields()
+      }
+    } else {
+      ElMessage.error(response.message || '订餐失败')
+    }
+  } catch (error) {
+    console.error('创建订单请求错误:', error)
+    ElMessage.error(error.response?.data?.message || '创建订单失败，请检查网络连接')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const loadMealTypes = async () => {
   try {
-    // 从后端 API 获取餐食类型列表
-    console.log('开始加载餐食类型...')
     const response = await axios.get('/api/order/meal-types')
-    console.log('餐食类型加载响应:', response)
     if (response.success) {
-      console.log('餐食类型数据:', response.data)
       mealTypes.value = response.data
     } else {
-      console.error('加载餐食类型失败，响应:', response)
       ElMessage.error('加载餐食类型失败: ' + (response.message || '未知错误'))
     }
   } catch (error) {
     console.error('加载餐食类型错误:', error)
-    console.error('错误详情:', error.response)
     ElMessage.error('加载餐食类型失败: ' + (error.message || '网络错误'))
   }
 }
@@ -210,8 +198,9 @@ onMounted(() => {
 
 <style scoped>
 .order-container {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
 }
 
 .card-header {
@@ -222,5 +211,59 @@ onMounted(() => {
 
 .order-content {
   padding-top: 20px;
+}
+
+.selected-dates-info {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.total-price {
+  margin-top: 20px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .order-container {
+    padding: 10px;
+  }
+
+  .order-content {
+    padding-top: 10px;
+  }
+
+  .selected-dates-info {
+    padding: 15px;
+    margin-top: 20px;
+  }
+
+  .el-form-item {
+    margin-bottom: 18px;
+  }
+
+  .el-button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .order-container {
+    padding: 5px;
+  }
+
+  .el-table {
+    font-size: 12px;
+  }
+
+  .el-table-column {
+    padding: 8px 0;
+  }
 }
 </style>

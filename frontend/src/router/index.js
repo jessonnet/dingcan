@@ -108,9 +108,27 @@ const routes = [
         }
       },
       {
+        path: 'department',
+        name: 'AdminDepartment',
+        component: () => import('../views/admin/Department.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['admin']
+        }
+      },
+      {
         path: 'role',
         name: 'AdminRole',
         component: () => import('../views/admin/Role.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['admin']
+        }
+      },
+      {
+        path: 'operation-log',
+        name: 'AdminOperationLog',
+        component: () => import('../views/admin/OperationLog.vue'),
         meta: {
           requiresAuth: true,
           roles: ['admin']

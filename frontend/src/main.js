@@ -10,16 +10,37 @@ import axios from 'axios'
 axios.defaults.baseURL = ''
 axios.defaults.timeout = 10000
 
+// 配置请求转换器
+axios.defaults.transformRequest = [function (data, headers) {
+  console.log('transformRequest - data:', data)
+  console.log('transformRequest - headers:', headers)
+  // 如果数据是对象，转换为JSON字符串
+  if (data && typeof data === 'object') {
+    const jsonStr = JSON.stringify(data)
+    console.log('transformRequest - JSON字符串:', jsonStr)
+    return jsonStr
+  }
+  return data
+}]
+
 // 请求拦截器
 axios.interceptors.request.use(
   config => {
-    console.log('发送请求:', config.url, config.data)
+    console.log('===== 请求拦截器开始 =====')
+    console.log('发送请求:', config.url)
+    console.log('请求数据:', config.data)
+    console.log('请求数据类型:', typeof config.data)
+    console.log('请求方法:', config.method)
+    console.log('请求头:', config.headers)
+    console.log('请求配置:', config)
+    console.log('===== 请求拦截器结束 =====')
+    
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    // 确保 Content-Type 是 application/json
-    if (config.method === 'post' || config.method === 'put') {
+    // 确保 Content-Type 是 application/json，并且不覆盖已有的Content-Type
+    if (!config.headers['Content-Type']) {
       config.headers['Content-Type'] = 'application/json'
     }
     return config

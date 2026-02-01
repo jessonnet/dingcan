@@ -24,9 +24,9 @@
               {{ scope.row.name }}
             </template>
           </el-table-column>
-          <el-table-column prop="department" label="部门" width="150">
+          <el-table-column prop="departmentName" label="部门" width="150">
             <template #default="scope">
-              {{ scope.row.department }}
+              {{ scope.row.departmentName }}
             </template>
           </el-table-column>
           <el-table-column prop="roleName" label="角色" width="120">
@@ -42,6 +42,11 @@
           <el-table-column prop="email" label="邮箱" width="200">
             <template #default="scope">
               {{ scope.row.email }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="balance" label="余额" width="100">
+            <template #default="scope">
+              {{ scope.row.balance || 0.00 }}
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
@@ -76,8 +81,15 @@
         <el-form-item label="姓名" prop="name">
           <el-input v-model="addEmployeeForm.name" placeholder="输入姓名" />
         </el-form-item>
-        <el-form-item label="部门" prop="department">
-          <el-input v-model="addEmployeeForm.department" placeholder="输入部门" />
+        <el-form-item label="部门" prop="departmentId">
+          <el-select v-model="addEmployeeForm.departmentId" placeholder="选择部门" clearable>
+            <el-option
+              v-for="dept in departments"
+              :key="dept.id"
+              :label="dept.name"
+              :value="dept.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="角色" prop="roleId">
           <el-select v-model="addEmployeeForm.roleId" placeholder="选择角色">
@@ -113,7 +125,7 @@
       title="编辑员工"
       width="500px"
     >
-      <el-form :model="editEmployeeForm" :rules="rules" ref="editEmployeeFormRef" label-width="100px">
+      <el-form :model="editEmployeeForm" :rules="editRules" ref="editEmployeeFormRef" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="editEmployeeForm.username" placeholder="输入用户名" />
         </el-form-item>
@@ -123,8 +135,15 @@
         <el-form-item label="姓名" prop="name">
           <el-input v-model="editEmployeeForm.name" placeholder="输入姓名" />
         </el-form-item>
-        <el-form-item label="部门" prop="department">
-          <el-input v-model="editEmployeeForm.department" placeholder="输入部门" />
+        <el-form-item label="部门" prop="departmentId">
+          <el-select v-model="editEmployeeForm.departmentId" placeholder="选择部门" clearable>
+            <el-option
+              v-for="dept in departments"
+              :key="dept.id"
+              :label="dept.name"
+              :value="dept.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="角色" prop="roleId">
           <el-select v-model="editEmployeeForm.roleId" placeholder="选择角色">
@@ -163,6 +182,7 @@ import { ElMessage } from 'element-plus'
 
 const employees = ref([])
 const roles = ref([])
+const departments = ref([])
 
 const addEmployeeDialogVisible = ref(false)
 const addEmployeeFormRef = ref(null)
@@ -170,7 +190,7 @@ const addEmployeeForm = ref({
   username: '',
   password: '',
   name: '',
-  department: '',
+  departmentId: '',
   roleId: '',
   phone: '',
   email: '',
@@ -184,7 +204,7 @@ const editEmployeeForm = ref({
   username: '',
   password: '',
   name: '',
-  department: '',
+  departmentId: '',
   roleId: '',
   phone: '',
   email: '',
@@ -201,8 +221,8 @@ const rules = {
   name: [
     { required: true, message: '请输入姓名', trigger: 'change' }
   ],
-  department: [
-    { required: true, message: '请输入部门', trigger: 'change' }
+  departmentId: [
+    { required: false, message: '请选择部门', trigger: 'change' }
   ],
   roleId: [
     { required: true, message: '请选择角色', trigger: 'change' }
@@ -211,7 +231,53 @@ const rules = {
     { required: true, message: '请输入手机号', trigger: 'change' }
   ],
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'change' }
+    {
+      type: 'email',
+      message: '请输入正确的邮箱格式',
+      trigger: 'change',
+      required: false
+    }
+  ],
+  status: [
+    { required: true, message: '请选择状态', trigger: 'change' }
+  ]
+}
+
+const editRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'change' }
+  ],
+  password: [
+    {
+      validator: (rule, value, callback) => {
+        if (value && value.length < 6) {
+          callback(new Error('密码长度不能少于6位'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  name: [
+    { required: true, message: '请输入姓名', trigger: 'change' }
+  ],
+  departmentId: [
+    { required: false, message: '请选择部门', trigger: 'change' }
+  ],
+  roleId: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'change' }
+  ],
+  email: [
+    {
+      type: 'email',
+      message: '请输入正确的邮箱格式',
+      trigger: 'change',
+      required: false
+    }
   ],
   status: [
     { required: true, message: '请选择状态', trigger: 'change' }
@@ -244,6 +310,19 @@ const loadRoles = async () => {
   }
 }
 
+const loadDepartments = async () => {
+  try {
+    const response = await axios.get('/api/admin/department/enabled')
+    if (response.success) {
+      departments.value = response.data
+    } else {
+      ElMessage.error('加载部门列表失败')
+    }
+  } catch (error) {
+    ElMessage.error('加载部门列表失败，请检查网络连接')
+  }
+}
+
 const handleAddSubmit = async () => {
   if (!addEmployeeFormRef.value) return
   
@@ -263,7 +342,7 @@ const handleAddSubmit = async () => {
             username: '',
             password: '',
             name: '',
-            department: '',
+            departmentId: '',
             roleId: '',
             phone: '',
             email: '',
@@ -287,7 +366,7 @@ const handleEdit = (employee) => {
     username: employee.username,
     password: '',
     name: employee.name,
-    department: employee.department,
+    departmentId: employee.departmentId,
     roleId: employee.roleId,
     phone: employee.phone,
     email: employee.email,
@@ -339,6 +418,7 @@ const handleDelete = async (id) => {
 onMounted(() => {
   loadEmployees()
   loadRoles()
+  loadDepartments()
 })
 </script>
 

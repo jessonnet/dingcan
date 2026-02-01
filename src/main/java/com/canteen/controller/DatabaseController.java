@@ -152,4 +152,114 @@ public class DatabaseController {
         }
         return sql;
     }
+
+    @PostMapping("/update-department-schema")
+    public String updateDepartmentSchema() {
+        try {
+            System.out.println("开始更新部门数据库schema...");
+            DataSource dataSource = DataSourceBuilder.create()
+                    .url("jdbc:mysql://localhost:3306/canteen_ordering_system?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true")
+                    .username("root")
+                    .password("123456")
+                    .driverClassName("com.mysql.cj.jdbc.Driver")
+                    .build();
+            
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+            
+            // 1. 创建部门表
+            String createDepartmentTable = """
+                CREATE TABLE IF NOT EXISTS `department` (
+                  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+                  `name` VARCHAR(100) UNIQUE NOT NULL COMMENT '部门名称',
+                  `description` VARCHAR(200) NULL COMMENT '部门描述',
+                  `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态（1：启用，0：禁用）',
+                  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门表'
+                """;
+            jdbcTemplate.execute(createDepartmentTable);
+            System.out.println("部门表创建成功");
+            
+            // 2. 检查并添加 department_id 列
+            String checkColumnSql = """
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = 'canteen_ordering_system' 
+                AND TABLE_NAME = 'user' 
+                AND COLUMN_NAME = 'department_id'
+                """;
+            Integer columnCount = jdbcTemplate.queryForObject(checkColumnSql, Integer.class);
+            
+            if (columnCount == 0) {
+                String addColumnSql = "ALTER TABLE `user` ADD COLUMN `department_id` BIGINT NULL COMMENT '部门ID' AFTER `role_id`";
+                jdbcTemplate.execute(addColumnSql);
+                System.out.println("添加 department_id 列成功");
+            } else {
+                System.out.println("department_id 列已存在");
+            }
+            
+            // 3. 删除旧的 department 列（如果存在）
+            String checkOldColumnSql = """
+                SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = 'canteen_ordering_system' 
+                AND TABLE_NAME = 'user' 
+                AND COLUMN_NAME = 'department'
+                """;
+            Integer oldColumnCount = jdbcTemplate.queryForObject(checkOldColumnSql, Integer.class);
+            
+            if (oldColumnCount > 0) {
+                String dropColumnSql = "ALTER TABLE `user` DROP COLUMN `department`";
+                jdbcTemplate.execute(dropColumnSql);
+                System.out.println("删除旧的 department 列成功");
+            } else {
+                System.out.println("旧的 department 列不存在");
+            }
+            
+            // 4. 添加外键约束
+            try {
+                String addForeignKeySql = """
+                    ALTER TABLE `user` ADD CONSTRAINT `fk_user_department` 
+                    FOREIGN KEY (`department_id`) REFERENCES `department`(`id`)
+                    """;
+                jdbcTemplate.execute(addForeignKeySql);
+                System.out.println("添加外键约束成功");
+            } catch (Exception e) {
+                System.out.println("外键约束可能已存在: " + e.getMessage());
+            }
+            
+            // 5. 初始化部门数据
+            String insertDepartmentSql = """
+                INSERT IGNORE INTO `department` (`name`, `description`) VALUES
+                ('行政部', '负责行政管理工作'),
+                ('技术部', '负责技术研发工作'),
+                ('市场部', '负责市场推广工作'),
+                ('财务部', '负责财务管理工作'),
+                ('厨房', '负责餐食制作工作')
+                """;
+            jdbcTemplate.execute(insertDepartmentSql);
+            System.out.println("部门数据初始化成功");
+            
+            // 6. 更新现有用户的部门 ID
+            String updateUserDepartmentSql = """
+                UPDATE `user` u 
+                LEFT JOIN `department` d ON d.name = (
+                  CASE u.username
+                    WHEN 'admin' THEN '行政部'
+                    WHEN 'employee1' THEN '技术部'
+                    WHEN 'employee2' THEN '市场部'
+                    WHEN 'chef1' THEN '厨房'
+                    ELSE NULL
+                  END
+                ) 
+                SET u.department_id = d.id 
+                WHERE u.department_id IS NULL AND d.id IS NOT NULL
+                """;
+            jdbcTemplate.execute(updateUserDepartmentSql);
+            System.out.println("用户部门ID更新成功");
+            
+            return "部门数据库schema更新成功！";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "部门数据库schema更新失败: " + e.getMessage();
+        }
+    }
 }

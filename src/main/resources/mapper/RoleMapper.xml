@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.canteen.mapper.RoleMapper">
+
+    <select id="selectRoleNameByUserId" parameterType="java.lang.Long" resultType="java.lang.String">
+        SELECT r.name FROM role r
+        JOIN user u ON r.id = u.role_id
+        WHERE u.id = #{userId}
+    </select>
+
+</mapper>

@@ -1,9 +1,12 @@
 package com.canteen.controller;
 
+import com.canteen.annotation.Log;
+import com.canteen.entity.Department;
 import com.canteen.entity.MealType;
 import com.canteen.entity.Role;
 import com.canteen.entity.SystemConfig;
 import com.canteen.entity.User;
+import com.canteen.service.DepartmentService;
 import com.canteen.service.MealTypeService;
 import com.canteen.service.RoleService;
 import com.canteen.service.SystemConfigService;
@@ -38,6 +41,9 @@ public class AdminController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private DepartmentService departmentService;
+
     // ==================== 餐食类型管理 ====================
 
     /**
@@ -58,6 +64,7 @@ public class AdminController {
      * @param mealType 餐食类型信息
      * @return 结果
      */
+    @Log(module = "餐食管理", description = "添加餐食类型", operationType = "CREATE")
     @PostMapping("/meal-type/add")
     public Map<String, Object> addMealType(@RequestBody MealType mealType) {
         Map<String, Object> result = new HashMap<>();
@@ -72,6 +79,7 @@ public class AdminController {
      * @param mealType 餐食类型信息
      * @return 结果
      */
+    @Log(module = "餐食管理", description = "修改餐食类型", operationType = "UPDATE")
     @PutMapping("/meal-type/update")
     public Map<String, Object> updateMealType(@RequestBody MealType mealType) {
         Map<String, Object> result = new HashMap<>();
@@ -86,6 +94,7 @@ public class AdminController {
      * @param id 餐食类型ID
      * @return 结果
      */
+    @Log(module = "餐食管理", description = "删除餐食类型", operationType = "DELETE")
     @DeleteMapping("/meal-type/delete/{id}")
     public Map<String, Object> deleteMealType(@PathVariable Long id) {
         Map<String, Object> result = new HashMap<>();
@@ -133,11 +142,15 @@ public class AdminController {
     @GetMapping("/user/list")
     public Map<String, Object> getUserList() {
         Map<String, Object> result = new HashMap<>();
-        List<User> users = userService.list();
-        // 关联角色信息
+        List<User> users = userService.getAllUsers();
+        // 关联角色和部门信息
         for (User user : users) {
             Role role = roleService.getById(user.getRoleId());
             user.setRoleName(role != null ? role.getName() : "");
+            if (user.getDepartmentId() != null) {
+                Department department = departmentService.getById(user.getDepartmentId());
+                user.setDepartmentName(department != null ? department.getName() : "");
+            }
         }
         result.put("success", true);
         result.put("data", users);
@@ -149,6 +162,7 @@ public class AdminController {
      * @param user 员工信息
      * @return 结果
      */
+    @Log(module = "用户管理", description = "添加员工", operationType = "CREATE")
     @PostMapping("/user/add")
     public Map<String, Object> addUser(@RequestBody User user) {
         Map<String, Object> result = new HashMap<>();
@@ -165,11 +179,15 @@ public class AdminController {
      * @param user 员工信息
      * @return 结果
      */
+    @Log(module = "用户管理", description = "修改员工", operationType = "UPDATE")
     @PutMapping("/user/update")
     public Map<String, Object> updateUser(@RequestBody User user) {
         Map<String, Object> result = new HashMap<>();
-        // 如果修改密码，则加密
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+        // 如果密码为空或null，设置为null，不更新密码字段
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            user.setPassword(null);
+        } else {
+            // 如果修改密码，则加密
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
         boolean success = userService.updateById(user);
@@ -183,6 +201,7 @@ public class AdminController {
      * @param id 员工ID
      * @return 结果
      */
+    @Log(module = "用户管理", description = "删除员工", operationType = "DELETE")
     @DeleteMapping("/user/delete/{id}")
     public Map<String, Object> deleteUser(@PathVariable Long id) {
         Map<String, Object> result = new HashMap<>();
@@ -212,6 +231,7 @@ public class AdminController {
      * @param role 角色信息
      * @return 结果
      */
+    @Log(module = "角色管理", description = "添加角色", operationType = "CREATE")
     @PostMapping("/role/add")
     public Map<String, Object> addRole(@RequestBody Role role) {
         Map<String, Object> result = new HashMap<>();
@@ -226,6 +246,7 @@ public class AdminController {
      * @param role 角色信息
      * @return 结果
      */
+    @Log(module = "角色管理", description = "修改角色", operationType = "UPDATE")
     @PutMapping("/role/update")
     public Map<String, Object> updateRole(@RequestBody Role role) {
         Map<String, Object> result = new HashMap<>();

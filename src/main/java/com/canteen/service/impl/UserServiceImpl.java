@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 用户服务实现类
@@ -42,12 +43,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public String getRoleNameByUserId(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            return null;
-        }
-        Role role = roleMapper.selectById(user.getRoleId());
-        return role != null ? role.getName() : null;
+        return roleMapper.selectRoleNameByUserId(userId);
+    }
+
+    /**
+     * 查询所有用户（排除balance字段）
+     * @return 用户列表
+     */
+    @Override
+    public List<User> getAllUsers() {
+        return userMapper.selectAllUsers();
     }
 
     /**

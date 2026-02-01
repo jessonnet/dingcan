@@ -1,5 +1,6 @@
 package com.canteen.controller;
 
+import com.canteen.dto.AggregatedOrderDTO;
 import com.canteen.entity.Order;
 import com.canteen.entity.MealType;
 import com.canteen.service.OrderService;
@@ -10,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +63,59 @@ public class OrderController {
         } else {
             result.put("success", false);
             result.put("message", "订餐失败，可能已经预订或超过预订时间");
+        }
+
+        return result;
+    }
+
+    /**
+     * 批量创建订单
+     * @param batchOrderData 批量订单数据
+     * @param request HttpServletRequest
+     * @return 结果
+     */
+    @PostMapping("/batch-create")
+    public Map<String, Object> batchCreateOrders(@RequestBody Map<String, Object> batchOrderData, HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取当前用户
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        com.canteen.entity.User user = userService.findByUsername(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+
+        // 获取IP地址
+        String ipAddress = request.getRemoteAddr();
+
+        // 获取参数
+        Long mealTypeId = Long.valueOf(batchOrderData.get("mealTypeId").toString());
+        @SuppressWarnings("unchecked")
+        List<String> orderDateStrs = (List<String>) batchOrderData.get("orderDates");
+
+        // 转换日期字符串为LocalDate
+        List<java.time.LocalDate> orderDates = new java.util.ArrayList<>();
+        for (String dateStr : orderDateStrs) {
+            orderDates.add(java.time.LocalDate.parse(dateStr));
+        }
+
+        // 批量创建订单
+        Map<String, Object> batchResult = orderService.batchCreateOrders(mealTypeId, orderDates, user.getId(), ipAddress);
+
+        result.putAll(batchResult);
+
+        // 构建返回消息
+        int successCount = (Integer) batchResult.get("successCount");
+        int failCount = (Integer) batchResult.get("failCount");
+
+        if (failCount == 0) {
+            result.put("message", "成功预订 " + successCount + " 天的餐食");
+        } else if (successCount == 0) {
+            result.put("message", "预订失败，请检查预订时间和是否已预订");
+        } else {
+            result.put("message", "成功预订 " + successCount + " 天，失败 " + failCount + " 天");
         }
 
         return result;
@@ -185,6 +240,55 @@ public class OrderController {
         List<Order> orders = orderService.getOrderHistoryByUserId(user.getId(), page, size);
         result.put("success", true);
         result.put("data", orders);
+
+        return result;
+    }
+
+    /**
+     * 查询聚合订单历史
+     * @param page 页码
+     * @param size 每页大小
+     * @return 结果
+     */
+    @GetMapping("/aggregated-history")
+    public Map<String, Object> getAggregatedOrderHistory(@RequestParam int page, @RequestParam int size) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取当前用户
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        com.canteen.entity.User user = userService.findByUsername(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+
+        // 查询聚合订单历史
+        List<AggregatedOrderDTO> aggregatedOrders = orderService.getAggregatedOrderHistoryByUserId(user.getId(), page, size);
+        
+        // 获取所有餐食类型信息
+        List<MealType> mealTypes = mealTypeService.getEnabledMealTypes();
+        Map<Long, MealType> mealTypeMap = new HashMap<>();
+        for (MealType mealType : mealTypes) {
+            mealTypeMap.put(mealType.getId(), mealType);
+        }
+        
+        // 填充餐食类型名称和价格
+        for (AggregatedOrderDTO aggregatedOrder : aggregatedOrders) {
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            for (AggregatedOrderDTO.OrderDetail detail : aggregatedOrder.getOrders()) {
+                MealType mealType = mealTypeMap.get(detail.getMealTypeId());
+                if (mealType != null) {
+                    detail.setMealTypeName(mealType.getName());
+                    detail.setPrice(mealType.getPrice());
+                    totalAmount = totalAmount.add(mealType.getPrice());
+                }
+            }
+            aggregatedOrder.setTotalAmount(totalAmount);
+        }
+        
+        result.put("success", true);
+        result.put("data", aggregatedOrders);
 
         return result;
     }

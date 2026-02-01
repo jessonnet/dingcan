@@ -47,75 +47,97 @@ const handleLogin = async () => {
     try {
       console.log('开始表单验证')
       // 使用回调函数形式的validate方法
-      loginFormRef.value.validate((valid, fields) => {
+      loginFormRef.value.validate(async (valid, fields) => {
         if (valid) {
           console.log('表单验证成功')
           
           // 发送登录请求
           console.log('开始发送登录请求')
           console.log('登录表单数据:', loginForm)
-          axios.post('/api/auth/login', loginForm)
-            .then(response => {
-              console.log('登录响应:', response)
+          
+          try {
+            // 直接使用fetch API，绕过axios拦截器
+            console.log('准备使用fetch发送登录请求')
+            console.log('登录表单数据:', loginForm)
+            
+            const response = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(loginForm)
+            })
+            
+            console.log('fetch响应状态:', response.status)
+            console.log('fetch响应头:', response.headers)
+            
+            if (!response.ok) {
+              console.error('HTTP错误:', response.status, response.statusText)
+              throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            
+            const data = await response.json()
+            console.log('登录响应数据:', data)
+            
+            // 检查响应格式
+            if (data && data.success) {
+              console.log('响应成功，success为true')
               
-              // 检查响应格式
-              if (response && response.success) {
-                console.log('响应成功，success为true')
-                
-                // 提取user和token
-                const user = response.user
-                const token = response.token
-                
-                console.log('响应user:', user)
-                console.log('响应user.role:', user.role)
-                
-                // 将用户角色转换为小写
-                if (user.role) {
-                  user.role = user.role.toLowerCase()
-                }
-                
-                localStorage.setItem('token', token)
-                localStorage.setItem('user', JSON.stringify(user))
-                console.log('存储的token:', localStorage.getItem('token'))
-                console.log('存储的user:', localStorage.getItem('user'))
-                console.log('存储的user.role:', JSON.parse(localStorage.getItem('user')).role)
-                
-                // 根据角色跳转到对应页面
-                console.log('开始路由跳转，角色:', user.role)
-                let redirectPath = '/login'
-                const role = user.role ? user.role : ''
-                switch (role) {
-                  case 'employee':
-                    redirectPath = '/employee/order'
-                    break
-                  case 'chef':
-                    redirectPath = '/chef/order-status'
-                    break
-                  case 'admin':
-                    redirectPath = '/admin/system-config'
-                    break
-                }
-                console.log('准备跳转到:', redirectPath)
-                
-                try {
-                  router.push(redirectPath)
-                  console.log('路由跳转命令已执行')
-                } catch (error) {
-                  console.error('路由跳转错误:', error)
-                  ElMessage.error('页面跳转失败，请刷新页面重试')
-                }
-                
-                ElMessage.success('登录成功')
-              } else {
-                console.error('登录失败，success为false或响应格式错误')
-                ElMessage.error(response.message || '登录失败')
+              // 提取user和token
+              const user = data.user
+              const token = data.token
+              
+              console.log('响应user:', user)
+              console.log('响应user.role:', user.role)
+              
+              // 将用户角色转换为小写
+              if (user.role) {
+                user.role = user.role.toLowerCase()
               }
-            })
-            .catch(error => {
-              console.error('登录错误:', error)
-              console.error('登录错误详情:', error.response)
-              ElMessage.error('登录失败，请检查用户名和密码')
-            })
+              
+              localStorage.setItem('token', token)
+              localStorage.setItem('user', JSON.stringify(user))
+              console.log('存储的token:', localStorage.getItem('token'))
+              console.log('存储的user:', localStorage.getItem('user'))
+              console.log('存储的user.role:', JSON.parse(localStorage.getItem('user')).role)
+              
+              // 根据角色跳转到对应页面
+              console.log('开始路由跳转，角色:', user.role)
+              let redirectPath = '/login'
+              const role = user.role ? user.role : ''
+              switch (role) {
+                case 'employee':
+                  redirectPath = '/employee/order'
+                  break
+                case 'chef':
+                  redirectPath = '/chef/order-status'
+                  break
+                case 'admin':
+                  redirectPath = '/admin/system-config'
+                  break
+              }
+              console.log('准备跳转到:', redirectPath)
+              
+              try {
+                router.push(redirectPath)
+                console.log('路由跳转命令已执行')
+              } catch (error) {
+                console.error('路由跳转错误:', error)
+                ElMessage.error('页面跳转失败，请刷新页面重试')
+              }
+              
+              ElMessage.success('登录成功')
+            } else {
+              console.error('登录失败，success为false或响应格式错误')
+              console.error('响应数据:', data)
+              ElMessage.error(data?.message || '登录失败')
+            }
+          } catch (error) {
+            console.error('登录错误:', error)
+            console.error('错误消息:', error.message)
+            ElMessage.error('登录失败，请检查用户名和密码')
+          }
         } else {
           console.error('表单验证失败:', fields)
           ElMessage.error('表单验证失败，请检查输入内容')

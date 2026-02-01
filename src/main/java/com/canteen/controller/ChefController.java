@@ -71,7 +71,7 @@ public class ChefController {
                     userOrder.put("userId", user.getId());
                     userOrder.put("username", user.getUsername());
                     userOrder.put("name", user.getName());
-                    userOrder.put("department", user.getDepartment());
+                    userOrder.put("department", user.getDepartmentName());
                     return userOrder;
                 }).collect(Collectors.toList());
 

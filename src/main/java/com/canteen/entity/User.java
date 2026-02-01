@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -30,11 +31,14 @@ public class User implements Serializable {
 
     private Long roleId;
 
-    private String department;
+    private Long departmentId;
 
     private String phone;
 
     private String email;
+
+    @TableField(exist = false)
+    private BigDecimal balance = BigDecimal.ZERO;
 
     private Integer status;
 
@@ -44,6 +48,9 @@ public class User implements Serializable {
 
     @TableField(exist = false)
     private String roleName;
+
+    @TableField(exist = false)
+    private String departmentName;
 
     public Long getId() {
         return id;
@@ -85,12 +92,12 @@ public class User implements Serializable {
         this.roleId = roleId;
     }
 
-    public String getDepartment() {
-        return department;
+    public Long getDepartmentId() {
+        return departmentId;
     }
 
-    public void setDepartment(String department) {
-        this.department = department;
+    public void setDepartmentId(Long departmentId) {
+        this.departmentId = departmentId;
     }
 
     public String getPhone() {
@@ -107,6 +114,14 @@ public class User implements Serializable {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public Integer getStatus() {
@@ -139,6 +154,14 @@ public class User implements Serializable {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
     }
 
 }

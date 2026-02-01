@@ -8,4 +8,11 @@ import com.canteen.entity.Role;
  */
 public interface RoleMapper extends BaseMapper<Role> {
 
+    /**
+     * 根据用户ID获取角色名称
+     * @param userId 用户ID
+     * @return 角色名称
+     */
+    String selectRoleNameByUserId(Long userId);
+
 }

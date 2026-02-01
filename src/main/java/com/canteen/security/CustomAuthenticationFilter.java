@@ -67,7 +67,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                             "username", userInfo.getUsername(),
                             "name", userInfo.getName(),
                             "role", userService.getRoleNameByUserId(userInfo.getId()),
-                            "department", userInfo.getDepartment(),
+                            "department", userInfo.getDepartmentName(),
                             "phone", userInfo.getPhone(),
                             "email", userInfo.getEmail()
                     )
