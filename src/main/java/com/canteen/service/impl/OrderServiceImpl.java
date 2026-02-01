@@ -3,6 +3,7 @@ package com.canteen.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.canteen.dto.AggregatedOrderDTO;
+import com.canteen.dto.OrderDTO;
 import com.canteen.entity.OperationLog;
 import com.canteen.entity.Order;
 import com.canteen.entity.SystemConfig;
@@ -11,6 +12,7 @@ import com.canteen.mapper.OperationLogMapper;
 import com.canteen.mapper.SystemConfigMapper;
 import com.canteen.service.OrderService;
 import com.canteen.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -457,6 +459,255 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         // 可以删除后天及以后的订单
         return true;
+    }
+
+    // ==================== 管理员订单管理实现 ====================
+
+    @Autowired
+    private com.canteen.mapper.UserMapper userMapper;
+
+    @Autowired
+    private com.canteen.mapper.MealTypeMapper mealTypeMapper;
+
+    @Autowired
+    private com.canteen.mapper.DepartmentMapper departmentMapper;
+
+    /**
+     * 获取订单列表（支持分页、筛选、排序）
+     */
+    @Override
+    public Map<String, Object> getOrderList(int page, int pageSize, Integer status, String userName,
+                                            String startDate, String endDate, String sortField, String sortOrder) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 构建查询条件
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        
+        // 状态筛选
+        if (status != null) {
+            queryWrapper.eq("status", status);
+        }
+        
+        // 日期范围筛选
+        if (startDate != null && !startDate.isEmpty()) {
+            queryWrapper.ge("order_date", LocalDate.parse(startDate));
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            queryWrapper.le("order_date", LocalDate.parse(endDate));
+        }
+        
+        // 用户姓名筛选
+        List<Long> userIds = null;
+        if (userName != null && !userName.isEmpty()) {
+            QueryWrapper<com.canteen.entity.User> userQuery = new QueryWrapper<>();
+            userQuery.like("name", userName).or().like("username", userName);
+            List<com.canteen.entity.User> users = userMapper.selectList(userQuery);
+            userIds = users.stream().map(com.canteen.entity.User::getId).collect(Collectors.toList());
+            if (userIds.isEmpty()) {
+                result.put("list", new ArrayList<>());
+                result.put("total", 0);
+                return result;
+            }
+            queryWrapper.in("user_id", userIds);
+        }
+        
+        // 排序 - 将驼峰命名转换为下划线命名
+        String dbSortField = camelToUnderline(sortField);
+        if ("asc".equalsIgnoreCase(sortOrder)) {
+            queryWrapper.orderByAsc(dbSortField);
+        } else {
+            queryWrapper.orderByDesc(dbSortField);
+        }
+        
+        // 分页查询
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> pageParam = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, pageSize);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> pageResult = orderMapper.selectPage(pageParam, queryWrapper);
+        
+        // 转换为DTO
+        List<OrderDTO> dtoList = new ArrayList<>();
+        for (Order order : pageResult.getRecords()) {
+            OrderDTO dto = convertToDTO(order);
+            dtoList.add(dto);
+        }
+        
+        result.put("list", dtoList);
+        result.put("total", pageResult.getTotal());
+        
+        return result;
+    }
+
+    /**
+     * 获取订单详情
+     */
+    @Override
+    public OrderDTO getOrderDetail(Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null) {
+            return null;
+        }
+        return convertToDTO(order);
+    }
+
+    /**
+     * 管理员修改订单
+     */
+    @Override
+    public boolean updateOrderByAdmin(Order order) {
+        Order existingOrder = orderMapper.selectById(order.getId());
+        if (existingOrder == null) {
+            return false;
+        }
+        
+        // 更新字段
+        if (order.getMealTypeId() != null) {
+            existingOrder.setMealTypeId(order.getMealTypeId());
+        }
+        if (order.getOrderDate() != null) {
+            existingOrder.setOrderDate(order.getOrderDate());
+        }
+        if (order.getStatus() != null) {
+            existingOrder.setStatus(order.getStatus());
+        }
+        existingOrder.setUpdatedAt(LocalDateTime.now());
+        
+        return orderMapper.updateById(existingOrder) > 0;
+    }
+
+    /**
+     * 管理员删除订单
+     */
+    @Override
+    public boolean deleteOrderByAdmin(Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null) {
+            return false;
+        }
+        
+        // 逻辑删除，将状态设置为0
+        order.setStatus(0);
+        order.setUpdatedAt(LocalDateTime.now());
+        return orderMapper.updateById(order) > 0;
+    }
+
+    /**
+     * 导出订单数据
+     */
+    @Override
+    public void exportOrders(Integer status, String userName, String startDate, String endDate, 
+                            HttpServletResponse response) {
+        try {
+            // 查询所有符合条件的订单（不分页）
+            Map<String, Object> data = getOrderList(1, Integer.MAX_VALUE, status, userName, 
+                    startDate, endDate, "createdAt", "desc");
+            @SuppressWarnings("unchecked")
+            List<OrderDTO> orders = (List<OrderDTO>) data.get("list");
+            
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = "订单数据_" + LocalDate.now().toString() + ".xlsx";
+            response.setHeader("Content-Disposition", "attachment;filename=" + 
+                    java.net.URLEncoder.encode(fileName, "UTF-8"));
+            
+            // 创建工作簿
+            org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("订单数据");
+            
+            // 创建表头
+            org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(0);
+            String[] headers = {"订单编号", "用户名", "真实姓名", "部门", "餐食类型", "价格", "订单日期", "状态", "创建时间"};
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.xssf.usermodel.XSSFCell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+            
+            // 填充数据
+            int rowNum = 1;
+            for (OrderDTO order : orders) {
+                org.apache.poi.xssf.usermodel.XSSFRow row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(order.getId());
+                row.createCell(1).setCellValue(order.getUsername());
+                row.createCell(2).setCellValue(order.getRealName());
+                row.createCell(3).setCellValue(order.getDepartmentName());
+                row.createCell(4).setCellValue(order.getMealTypeName());
+                row.createCell(5).setCellValue(order.getMealPrice() != null ? order.getMealPrice().doubleValue() : 0);
+                row.createCell(6).setCellValue(order.getOrderDate().toString());
+                row.createCell(7).setCellValue(order.getStatusDesc());
+                row.createCell(8).setCellValue(order.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+            
+            // 自动调整列宽
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // 写入响应
+            workbook.write(response.getOutputStream());
+            workbook.close();
+            
+        } catch (Exception e) {
+            throw new RuntimeException("导出订单数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将驼峰命名转换为下划线命名
+     */
+    private String camelToUnderline(String camel) {
+        if (camel == null || camel.isEmpty()) {
+            return camel;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < camel.length(); i++) {
+            char c = camel.charAt(i);
+            if (Character.isUpperCase(c)) {
+                sb.append("_").append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将Order转换为OrderDTO
+     */
+    private OrderDTO convertToDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setId(order.getId());
+        dto.setUserId(order.getUserId());
+        dto.setMealTypeId(order.getMealTypeId());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setStatus(order.getStatus());
+        dto.setCreatedAt(order.getCreatedAt());
+        dto.setUpdatedAt(order.getUpdatedAt());
+        
+        // 状态描述
+        dto.setStatusDesc(order.getStatus() == 1 ? "有效" : "无效");
+        
+        // 查询用户信息
+        com.canteen.entity.User user = userMapper.selectById(order.getUserId());
+        if (user != null) {
+            dto.setUsername(user.getUsername());
+            dto.setRealName(user.getName());
+            dto.setDepartmentId(user.getDepartmentId());
+            
+            // 查询部门信息
+            if (user.getDepartmentId() != null) {
+                com.canteen.entity.Department department = departmentMapper.selectById(user.getDepartmentId());
+                dto.setDepartmentName(department != null ? department.getName() : "");
+            }
+        }
+        
+        // 查询餐食类型信息
+        com.canteen.entity.MealType mealType = mealTypeMapper.selectById(order.getMealTypeId());
+        if (mealType != null) {
+            dto.setMealTypeName(mealType.getName());
+            dto.setMealPrice(mealType.getPrice());
+        }
+        
+        return dto;
     }
 
 }

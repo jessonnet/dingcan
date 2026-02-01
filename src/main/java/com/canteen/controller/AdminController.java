@@ -8,6 +8,7 @@ import com.canteen.entity.SystemConfig;
 import com.canteen.entity.User;
 import com.canteen.service.DepartmentService;
 import com.canteen.service.MealTypeService;
+import com.canteen.service.OrderService;
 import com.canteen.service.RoleService;
 import com.canteen.service.SystemConfigService;
 import com.canteen.service.UserService;
@@ -277,6 +278,118 @@ public class AdminController {
         result.put("success", success);
         result.put("message", success ? "删除成功" : "删除失败");
         return result;
+    }
+
+    // ==================== 订单管理 ====================
+
+    @Autowired
+    private OrderService orderService;
+
+    /**
+     * 获取订单列表（支持分页、筛选、排序）
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param status 订单状态
+     * @param userName 用户姓名
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param sortField 排序字段
+     * @param sortOrder 排序方式（asc/desc）
+     * @return 结果
+     */
+    @GetMapping("/order/list")
+    public Map<String, Object> getOrderList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "createdAt") String sortField,
+            @RequestParam(defaultValue = "desc") String sortOrder) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            Map<String, Object> data = orderService.getOrderList(page, pageSize, status, userName, 
+                    startDate, endDate, sortField, sortOrder);
+            result.put("success", true);
+            result.put("data", data.get("list"));
+            result.put("total", data.get("total"));
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "获取订单列表失败: " + e.getMessage());
+        }
+        
+        return result;
+    }
+
+    /**
+     * 获取订单详情
+     * @param id 订单ID
+     * @return 结果
+     */
+    @GetMapping("/order/detail/{id}")
+    public Map<String, Object> getOrderDetail(@PathVariable Long id) {
+        Map<String, Object> result = new HashMap<>();
+        
+        com.canteen.dto.OrderDTO orderDTO = orderService.getOrderDetail(id);
+        if (orderDTO != null) {
+            result.put("success", true);
+            result.put("data", orderDTO);
+        } else {
+            result.put("success", false);
+            result.put("message", "订单不存在");
+        }
+        
+        return result;
+    }
+
+    /**
+     * 修改订单
+     * @param order 订单信息
+     * @return 结果
+     */
+    @Log(module = "订单管理", description = "修改订单", operationType = "UPDATE")
+    @PutMapping("/order/update")
+    public Map<String, Object> updateOrder(@RequestBody com.canteen.entity.Order order) {
+        Map<String, Object> result = new HashMap<>();
+        boolean success = orderService.updateOrderByAdmin(order);
+        result.put("success", success);
+        result.put("message", success ? "修改成功" : "修改失败");
+        return result;
+    }
+
+    /**
+     * 删除订单
+     * @param id 订单ID
+     * @return 结果
+     */
+    @Log(module = "订单管理", description = "删除订单", operationType = "DELETE")
+    @DeleteMapping("/order/delete/{id}")
+    public Map<String, Object> deleteOrder(@PathVariable Long id) {
+        Map<String, Object> result = new HashMap<>();
+        boolean success = orderService.deleteOrderByAdmin(id);
+        result.put("success", success);
+        result.put("message", success ? "删除成功" : "删除失败");
+        return result;
+    }
+
+    /**
+     * 导出订单数据
+     * @param status 订单状态
+     * @param userName 用户姓名
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param response HttpServletResponse
+     */
+    @GetMapping("/order/export")
+    public void exportOrders(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            jakarta.servlet.http.HttpServletResponse response) {
+        orderService.exportOrders(status, userName, startDate, endDate, response);
     }
 
 }

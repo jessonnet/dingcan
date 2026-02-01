@@ -1,5 +1,7 @@
 package com.canteen.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.canteen.entity.OperationLog;
 import com.canteen.mapper.OperationLogMapper;
@@ -21,21 +23,59 @@ public class OperationLogServiceImpl extends ServiceImpl<OperationLogMapper, Ope
     public List<OperationLog> queryLogs(Long userId, String username, String operationType, 
                                        String module, LocalDateTime startTime, LocalDateTime endTime, 
                                        Integer status, Integer page, Integer pageSize) {
-        int offset = (page - 1) * pageSize;
-        return baseMapper.queryLogs(userId, username, operationType, module, 
-                                  startTime, endTime, status, offset, pageSize);
+        LambdaQueryWrapper<OperationLog> wrapper = new LambdaQueryWrapper<>();
+        
+        if (userId != null) {
+            wrapper.eq(OperationLog::getUserId, userId);
+        }
+        if (operationType != null && !operationType.isEmpty()) {
+            wrapper.eq(OperationLog::getOperationType, operationType);
+        }
+        if (module != null && !module.isEmpty()) {
+            wrapper.like(OperationLog::getDescription, module);
+        }
+        if (startTime != null) {
+            wrapper.ge(OperationLog::getCreatedAt, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(OperationLog::getCreatedAt, endTime);
+        }
+        
+        wrapper.orderByDesc(OperationLog::getCreatedAt);
+        
+        Page<OperationLog> pageParam = new Page<>(page, pageSize);
+        return page(pageParam, wrapper).getRecords();
     }
 
     @Override
     public Long countLogs(Long userId, String username, String operationType, 
                         String module, LocalDateTime startTime, LocalDateTime endTime, 
                         Integer status) {
-        return baseMapper.countLogs(userId, username, operationType, module, 
-                                 startTime, endTime, status);
+        LambdaQueryWrapper<OperationLog> wrapper = new LambdaQueryWrapper<>();
+        
+        if (userId != null) {
+            wrapper.eq(OperationLog::getUserId, userId);
+        }
+        if (operationType != null && !operationType.isEmpty()) {
+            wrapper.eq(OperationLog::getOperationType, operationType);
+        }
+        if (module != null && !module.isEmpty()) {
+            wrapper.like(OperationLog::getDescription, module);
+        }
+        if (startTime != null) {
+            wrapper.ge(OperationLog::getCreatedAt, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(OperationLog::getCreatedAt, endTime);
+        }
+        
+        return count(wrapper);
     }
 
     @Override
     public void deleteLogsBeforeDate(LocalDateTime date) {
-        baseMapper.delete(null);
+        LambdaQueryWrapper<OperationLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.le(OperationLog::getCreatedAt, date);
+        remove(wrapper);
     }
 }

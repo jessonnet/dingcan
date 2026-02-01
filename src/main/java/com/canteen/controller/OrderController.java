@@ -1,5 +1,6 @@
 package com.canteen.controller;
 
+import com.canteen.annotation.Log;
 import com.canteen.dto.AggregatedOrderDTO;
 import com.canteen.entity.Order;
 import com.canteen.entity.MealType;
@@ -39,6 +40,7 @@ public class OrderController {
      * @param request HttpServletRequest
      * @return 结果
      */
+    @Log(module = "订单管理", description = "创建订单", operationType = "CREATE")
     @PostMapping("/create")
     public Map<String, Object> createOrder(@RequestBody Order order, HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();
@@ -74,6 +76,7 @@ public class OrderController {
      * @param request HttpServletRequest
      * @return 结果
      */
+    @Log(module = "订单管理", description = "批量创建订单", operationType = "CREATE")
     @PostMapping("/batch-create")
     public Map<String, Object> batchCreateOrders(@RequestBody Map<String, Object> batchOrderData, HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();
@@ -127,6 +130,7 @@ public class OrderController {
      * @param request HttpServletRequest
      * @return 结果
      */
+    @Log(module = "订单管理", description = "修改订单", operationType = "UPDATE")
     @PutMapping("/update")
     public Map<String, Object> updateOrder(@RequestBody Order order, HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();
@@ -162,6 +166,7 @@ public class OrderController {
      * @param request HttpServletRequest
      * @return 结果
      */
+    @Log(module = "订单管理", description = "删除订单", operationType = "DELETE")
     @DeleteMapping("/delete/{orderId}")
     public Map<String, Object> deleteOrder(@PathVariable Long orderId, HttpServletRequest request) {
         Map<String, Object> result = new HashMap<>();

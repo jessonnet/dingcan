@@ -74,8 +74,7 @@ public class OperationLogController {
         Sheet sheet = workbook.createSheet("操作日志");
         
         Row headerRow = sheet.createRow(0);
-        String[] headers = {"ID", "用户ID", "用户名", "操作类型", "模块", "描述", 
-                          "请求方式", "请求URL", "IP地址", "状态", "执行时间(ms)", "创建时间"};
+        String[] headers = {"ID", "用户ID", "用户名", "操作类型", "操作内容", "操作时间", "IP地址"};
         
         CellStyle headerStyle = workbook.createCellStyle();
         Font headerFont = workbook.createFont();
@@ -101,17 +100,13 @@ public class OperationLogController {
             row.createCell(1).setCellValue(log.getUserId());
             row.createCell(2).setCellValue(log.getUsername());
             row.createCell(3).setCellValue(log.getOperationType());
-            row.createCell(4).setCellValue(log.getModule());
-            row.createCell(5).setCellValue(log.getDescription());
-            row.createCell(6).setCellValue(log.getRequestMethod());
-            row.createCell(7).setCellValue(log.getRequestUrl());
-            row.createCell(8).setCellValue(log.getIpAddress());
-            row.createCell(9).setCellValue(log.getStatus() == 1 ? "成功" : "失败");
-            row.createCell(10).setCellValue(log.getExecutionTime());
+            row.createCell(4).setCellValue(log.getDescription());
             
             if (log.getCreatedAt() != null) {
-                row.createCell(11).setCellValue(log.getCreatedAt().format(formatter));
+                row.createCell(5).setCellValue(log.getCreatedAt().format(formatter));
             }
+            
+            row.createCell(6).setCellValue(log.getIpAddress());
         }
         
         for (int i = 0; i < headers.length; i++) {

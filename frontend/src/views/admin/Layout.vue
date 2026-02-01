@@ -53,9 +53,13 @@
             <el-icon><UserFilled /></el-icon>
             <span>角色管理</span>
           </el-menu-item>
+          <el-menu-item index="/admin/order-manage">
+            <el-icon><List /></el-icon>
+            <span>订单管理</span>
+          </el-menu-item>
           <el-menu-item index="/admin/operation-log">
             <el-icon><Document /></el-icon>
-            <span>操作日志</span>
+            <span>日志查询</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -113,7 +117,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Setting, Food, User, UserFilled, OfficeBuilding, Document, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
+import { Setting, Food, User, UserFilled, OfficeBuilding, Document, ArrowDown, Lock, SwitchButton, List } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 

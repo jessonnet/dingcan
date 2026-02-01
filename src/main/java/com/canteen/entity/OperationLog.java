@@ -51,6 +51,7 @@ public class OperationLog implements Serializable {
 
     private LocalDateTime createdAt;
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }

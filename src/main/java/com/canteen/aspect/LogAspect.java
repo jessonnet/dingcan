@@ -5,6 +5,7 @@ import com.canteen.annotation.Log;
 import com.canteen.entity.OperationLog;
 import com.canteen.entity.User;
 import com.canteen.service.OperationLogService;
+import com.canteen.service.UserService;
 import com.canteen.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -30,6 +31,9 @@ public class LogAspect {
 
     @Autowired
     private OperationLogService operationLogService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private JwtUtils jwtUtils;
@@ -88,6 +92,12 @@ public class LogAspect {
                     try {
                         String username = jwtUtils.getUsernameFromToken(token);
                         operationLog.setUsername(username);
+                        
+                        // 获取用户ID
+                        User user = userService.findByUsername(username);
+                        if (user != null) {
+                            operationLog.setUserId(user.getId());
+                        }
                     } catch (Exception e) {
                         logger.warn("Failed to get username from token: {}", e.getMessage());
                     }

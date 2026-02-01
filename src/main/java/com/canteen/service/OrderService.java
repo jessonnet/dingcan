@@ -2,7 +2,9 @@ package com.canteen.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.canteen.dto.AggregatedOrderDTO;
+import com.canteen.dto.OrderDTO;
 import com.canteen.entity.Order;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -96,5 +98,53 @@ public interface OrderService extends IService<Order> {
      * @return 是否可以删除
      */
     boolean canDeleteOrder(LocalDate orderDate);
+
+    // ==================== 管理员订单管理接口 ====================
+
+    /**
+     * 获取订单列表（支持分页、筛选、排序）
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param status 订单状态
+     * @param userName 用户姓名
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param sortField 排序字段
+     * @param sortOrder 排序方式
+     * @return 订单列表和总数
+     */
+    Map<String, Object> getOrderList(int page, int pageSize, Integer status, String userName,
+                                     String startDate, String endDate, String sortField, String sortOrder);
+
+    /**
+     * 获取订单详情
+     * @param id 订单ID
+     * @return 订单DTO
+     */
+    OrderDTO getOrderDetail(Long id);
+
+    /**
+     * 管理员修改订单
+     * @param order 订单信息
+     * @return 是否成功
+     */
+    boolean updateOrderByAdmin(Order order);
+
+    /**
+     * 管理员删除订单
+     * @param id 订单ID
+     * @return 是否成功
+     */
+    boolean deleteOrderByAdmin(Long id);
+
+    /**
+     * 导出订单数据
+     * @param status 订单状态
+     * @param userName 用户姓名
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param response HttpServletResponse
+     */
+    void exportOrders(Integer status, String userName, String startDate, String endDate, HttpServletResponse response);
 
 }

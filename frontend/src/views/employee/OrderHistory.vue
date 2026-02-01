@@ -48,23 +48,15 @@
                   <span class="created-time">{{ scope.row.createdAt }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="140">
+              <el-table-column label="操作" width="120">
                 <template #default="scope">
-                  <el-button 
-                    type="primary" 
-                    size="small" 
-                    @click="handleUpdate(scope.row)" 
-                    :disabled="!canEdit(aggregatedOrder.orderDate)"
-                  >
-                    修改
-                  </el-button>
                   <el-button 
                     type="danger" 
                     size="small" 
-                    @click="handleDelete(scope.row.id)" 
+                    @click="handleCancel(scope.row.id)" 
                     :disabled="!canEdit(aggregatedOrder.orderDate)"
                   >
-                    删除
+                    取消订餐
                   </el-button>
                 </template>
               </el-table-column>
@@ -85,41 +77,6 @@
         </div>
       </div>
     </el-card>
-    
-    <!-- 修改订单对话框 -->
-    <el-dialog
-      v-model="updateDialogVisible"
-      title="修改订单"
-      width="500px"
-    >
-      <el-form :model="updateForm" :rules="rules" ref="updateFormRef" label-width="100px">
-        <el-form-item label="订餐日期" prop="orderDate">
-          <el-date-picker
-            v-model="updateForm.orderDate"
-            type="date"
-            placeholder="选择订餐日期"
-            :disabled-date="disabledDate"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="餐食类型" prop="mealTypeId">
-          <el-select v-model="updateForm.mealTypeId" placeholder="选择餐食类型" style="width: 100%">
-            <el-option
-              v-for="mealType in mealTypes"
-              :key="mealType.id"
-              :label="mealType.name + ' - ¥' + mealType.price.toFixed(2)"
-              :value="mealType.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="updateDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleUpdateSubmit">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -133,30 +90,8 @@ const aggregatedOrders = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const mealTypes = ref([])
 
-const updateDialogVisible = ref(false)
-const updateFormRef = ref(null)
-const updateForm = ref({
-  id: '',
-  orderDate: '',
-  mealTypeId: ''
-})
 
-const rules = {
-  orderDate: [
-    { required: true, message: '请选择订餐日期', trigger: 'change' }
-  ],
-  mealTypeId: [
-    { required: true, message: '请选择餐食类型', trigger: 'change' }
-  ]
-}
-
-const disabledDate = (time) => {
-  const today = dayjs().startOf('day')
-  const tomorrow = today.add(1, 'day')
-  return dayjs(time).isBefore(tomorrow)
-}
 
 const canEdit = (orderDate) => {
   const orderDateObj = dayjs(orderDate)
@@ -221,82 +156,22 @@ const handleCurrentChange = (current) => {
   loadAggregatedOrderHistory()
 }
 
-const handleUpdate = (order) => {
-  updateForm.value = {
-    id: order.id,
-    orderDate: dayjs(order.createdAt).format('YYYY-MM-DD'),
-    mealTypeId: order.mealTypeId
-  }
-  updateDialogVisible.value = true
-}
-
-const handleUpdateSubmit = async () => {
-  if (!updateFormRef.value) return
-  
-  await updateFormRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        const canOrderResponse = await axios.get('/api/order/can-order', {
-          params: {
-            orderDate: updateForm.value.orderDate
-          }
-        })
-        
-        if (!canOrderResponse.canOrder) {
-          ElMessage.error('超过修改时间，无法修改')
-          return
-        }
-        
-        const response = await axios.put('/api/order/update', {
-          id: updateForm.value.id,
-          mealTypeId: updateForm.value.mealTypeId,
-          orderDate: updateForm.value.orderDate
-        })
-        
-        if (response.success) {
-          ElMessage.success(response.message)
-          updateDialogVisible.value = false
-          loadAggregatedOrderHistory()
-        } else {
-          ElMessage.error(response.message)
-        }
-      } catch (error) {
-        ElMessage.error('修改失败，请检查网络连接')
-      }
-    }
-  })
-}
-
-const handleDelete = async (orderId) => {
+const handleCancel = async (orderId) => {
   try {
     const response = await axios.delete(`/api/order/delete/${orderId}`)
     
     if (response.success) {
-      ElMessage.success(response.message)
+      ElMessage.success('取消订餐成功')
       loadAggregatedOrderHistory()
     } else {
-      ElMessage.error(response.message)
+      ElMessage.error(response.message || '取消订餐失败')
     }
   } catch (error) {
-    ElMessage.error('删除失败，请检查网络连接')
-  }
-}
-
-const loadMealTypes = async () => {
-  try {
-    const response = await axios.get('/api/order/meal-types')
-    if (response.success) {
-      mealTypes.value = response.data
-    } else {
-      ElMessage.error('加载餐食类型失败: ' + (response.message || '未知错误'))
-    }
-  } catch (error) {
-    ElMessage.error('加载餐食类型失败: ' + (error.message || '网络错误'))
+    ElMessage.error('取消订餐失败，请检查网络连接')
   }
 }
 
 onMounted(() => {
-  loadMealTypes()
   loadAggregatedOrderHistory()
 })
 </script>

@@ -1,7 +1,9 @@
 package com.canteen.controller;
 
 import com.canteen.annotation.Log;
+import com.canteen.entity.Department;
 import com.canteen.entity.User;
+import com.canteen.mapper.DepartmentMapper;
 import com.canteen.service.UserService;
 import com.canteen.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +26,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private DepartmentMapper departmentMapper;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -75,13 +80,22 @@ public class AuthController {
         // 获取用户角色
         String roleName = userService.getRoleNameByUserId(user.getId());
         
+        // 获取部门名称
+        String departmentName = "";
+        if (user.getDepartmentId() != null) {
+            Department department = departmentMapper.selectById(user.getDepartmentId());
+            if (department != null) {
+                departmentName = department.getName();
+            }
+        }
+        
         // 构建返回数据
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", user.getId());
         userInfo.put("username", user.getUsername());
         userInfo.put("name", user.getName());
         userInfo.put("role", roleName);
-        userInfo.put("department", user.getDepartmentName());
+        userInfo.put("department", departmentName);
         
         result.put("success", true);
         result.put("message", "登录成功");

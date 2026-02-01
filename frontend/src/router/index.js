@@ -133,6 +133,15 @@ const routes = [
           requiresAuth: true,
           roles: ['admin']
         }
+      },
+      {
+        path: 'order-manage',
+        name: 'AdminOrderManage',
+        component: () => import('../views/admin/OrderManage.vue'),
+        meta: {
+          requiresAuth: true,
+          roles: ['admin']
+        }
       }
     ]
   },

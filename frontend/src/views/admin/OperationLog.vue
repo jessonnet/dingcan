@@ -13,8 +13,8 @@
 
       <div class="filter-section">
         <el-form :inline="true" :model="filterForm" class="filter-form">
-          <el-form-item label="用户名">
-            <el-input v-model="filterForm.username" placeholder="输入用户名" clearable style="width: 150px" />
+          <el-form-item label="用户ID">
+            <el-input v-model="filterForm.userId" placeholder="输入用户ID" clearable style="width: 150px" />
           </el-form-item>
           <el-form-item label="操作类型">
             <el-select v-model="filterForm.operationType" placeholder="选择操作类型" clearable style="width: 150px">
@@ -24,15 +24,6 @@
               <el-option label="更新" value="UPDATE" />
               <el-option label="删除" value="DELETE" />
               <el-option label="查询" value="QUERY" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="模块">
-            <el-input v-model="filterForm.module" placeholder="输入模块名称" clearable style="width: 150px" />
-          </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="filterForm.status" placeholder="选择状态" clearable style="width: 120px">
-              <el-option label="成功" :value="1" />
-              <el-option label="失败" :value="0" />
             </el-select>
           </el-form-item>
           <el-form-item label="时间范围">
@@ -56,7 +47,7 @@
 
       <el-table :data="logs" style="width: 100%" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="userId" label="用户ID" width="100" />
         <el-table-column prop="operationType" label="操作类型" width="100">
           <template #default="scope">
             <el-tag :type="getOperationTypeTag(scope.row.operationType)">
@@ -64,23 +55,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="module" label="模块" width="120" />
-        <el-table-column prop="description" label="描述" width="200" show-overflow-tooltip />
-        <el-table-column prop="requestMethod" label="请求方式" width="100" />
-        <el-table-column prop="requestUrl" label="请求URL" width="250" show-overflow-tooltip />
+        <el-table-column prop="module" label="操作模块" width="120" show-overflow-tooltip />
+        <el-table-column prop="description" label="操作内容" width="200" show-overflow-tooltip />
         <el-table-column prop="ipAddress" label="IP地址" width="130" />
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
-              {{ scope.row.status === 1 ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="executionTime" label="执行时间" width="100">
-          <template #default="scope">
-            {{ scope.row.executionTime }}ms
-          </template>
-        </el-table-column>
         <el-table-column prop="createdAt" label="操作时间" width="180">
           <template #default="scope">
             {{ formatDateTime(scope.row.createdAt) }}
@@ -113,32 +90,15 @@
     >
       <el-descriptions :column="2" border>
         <el-descriptions-item label="日志ID">{{ currentLog.id }}</el-descriptions-item>
+        <el-descriptions-item label="用户ID">{{ currentLog.userId }}</el-descriptions-item>
         <el-descriptions-item label="用户名">{{ currentLog.username }}</el-descriptions-item>
         <el-descriptions-item label="操作类型">{{ getOperationTypeText(currentLog.operationType) }}</el-descriptions-item>
-        <el-descriptions-item label="模块">{{ currentLog.module }}</el-descriptions-item>
-        <el-descriptions-item label="描述">{{ currentLog.description }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentLog.status === 1 ? 'success' : 'danger'">
-            {{ currentLog.status === 1 ? '成功' : '失败' }}
-          </el-tag>
-        </el-descriptions-item>
+        <el-descriptions-item label="操作模块">{{ currentLog.module }}</el-descriptions-item>
+        <el-descriptions-item label="操作内容">{{ currentLog.description }}</el-descriptions-item>
+        <el-descriptions-item label="IP地址">{{ currentLog.ipAddress }}</el-descriptions-item>
         <el-descriptions-item label="请求方式">{{ currentLog.requestMethod }}</el-descriptions-item>
         <el-descriptions-item label="请求URL">{{ currentLog.requestUrl }}</el-descriptions-item>
-        <el-descriptions-item label="IP地址">{{ currentLog.ipAddress }}</el-descriptions-item>
-        <el-descriptions-item label="执行时间">{{ currentLog.executionTime }}ms</el-descriptions-item>
         <el-descriptions-item label="操作时间" :span="2">{{ formatDateTime(currentLog.createdAt) }}</el-descriptions-item>
-        <el-descriptions-item label="请求参数" :span="2">
-          <pre class="json-content">{{ formatJson(currentLog.requestParams) }}</pre>
-        </el-descriptions-item>
-        <el-descriptions-item v-if="currentLog.oldData" label="变更前数据" :span="2">
-          <pre class="json-content">{{ formatJson(currentLog.oldData) }}</pre>
-        </el-descriptions-item>
-        <el-descriptions-item v-if="currentLog.newData" label="变更后数据" :span="2">
-          <pre class="json-content">{{ formatJson(currentLog.newData) }}</pre>
-        </el-descriptions-item>
-        <el-descriptions-item v-if="currentLog.errorMessage" label="错误信息" :span="2">
-          <pre class="error-content">{{ currentLog.errorMessage }}</pre>
-        </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -186,10 +146,8 @@ const currentLog = ref({})
 const dateRange = ref([])
 
 const filterForm = reactive({
-  username: '',
-  operationType: '',
-  module: '',
-  status: null
+  userId: '',
+  operationType: ''
 })
 
 const clearForm = reactive({
@@ -238,15 +196,6 @@ const formatDateTime = (dateTime) => {
   })
 }
 
-const formatJson = (json) => {
-  if (!json) return ''
-  try {
-    return JSON.stringify(JSON.parse(json), null, 2)
-  } catch {
-    return json
-  }
-}
-
 const fetchLogs = async () => {
   loading.value = true
   try {
@@ -261,10 +210,14 @@ const fetchLogs = async () => {
       params.endTime = dateRange.value[1]
     }
     
-    const response = await axios.get('/admin/operation-log/list', { params })
-    if (response.data.success) {
-      logs.value = response.data.data
-      pagination.total = response.data.total
+    const data = await axios.get('/api/admin/operation-log/list', { params })
+    console.log('操作日志响应:', data)
+    
+    if (data && data.success) {
+      logs.value = data.data
+      pagination.total = data.total
+    } else {
+      console.error('获取日志失败:', data)
     }
   } catch (error) {
     console.error('获取日志失败:', error)
@@ -279,10 +232,8 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
-  filterForm.username = ''
+  filterForm.userId = ''
   filterForm.operationType = ''
-  filterForm.module = ''
-  filterForm.status = null
   dateRange.value = []
   pagination.page = 1
   fetchLogs()
@@ -315,7 +266,7 @@ const handleExport = async () => {
       params.endTime = dateRange.value[1]
     }
     
-    const response = await axios.get('/admin/operation-log/export', {
+    const response = await axios.get('/api/admin/operation-log/export', {
       params,
       responseType: 'blob'
     })
@@ -339,10 +290,10 @@ const handleClear = async () => {
   }
   
   try {
-    const response = await axios.delete('/admin/operation-log/clear', {
+    const response = await axios.delete('/api/admin/operation-log/clear', {
       params: { beforeDate: clearForm.beforeDate }
     })
-    if (response.data.success) {
+    if (response.data && response.data.success) {
       alert('清理成功')
       clearDialogVisible.value = false
       fetchLogs()
@@ -387,27 +338,6 @@ onMounted(() => {
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: center;
-}
-
-.json-content {
-  background-color: #f5f5f5;
-  padding: 10px;
-  border-radius: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.error-content {
-  background-color: #fef0f0;
-  color: #f56c6c;
-  padding: 10px;
-  border-radius: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-  font-size: 12px;
+  justify-content: flex-end;
 }
 </style>

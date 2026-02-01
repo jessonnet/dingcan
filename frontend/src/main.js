@@ -7,7 +7,7 @@ import 'element-plus/dist/index.css'
 import axios from 'axios'
 
 // 配置axios
-axios.defaults.baseURL = ''
+axios.defaults.baseURL = 'http://localhost:8080'
 axios.defaults.timeout = 10000
 
 // 配置请求转换器
@@ -62,7 +62,7 @@ axios.interceptors.response.use(
     
     // 如果响应是对象
     if (data && typeof data === 'object') {
-      // 如果响应包含data字段，并且data字段包含user和token字段
+      // 如果响应包含data字段，并且data字段包含user和token字段（登录响应）
       if ('data' in data && data.data && typeof data.data === 'object' && 'user' in data.data && 'token' in data.data) {
         console.log('响应包含data字段，并且data字段包含user和token字段，返回处理后的响应')
         // 构建符合前端期望的响应格式
@@ -81,11 +81,9 @@ axios.interceptors.response.use(
           user: data.user,
           token: data.token
         }
-      } else if ('success' in data) {
-        console.log('响应包含success字段，直接返回')
-        return data
       } else {
-        console.log('响应不包含success、user、token或data字段，直接返回')
+        console.log('响应不包含user和token字段，直接返回原始数据')
+        // 对于其他所有响应（包括包含success字段的），直接返回原始数据
         return data
       }
     } else {
