@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/logout", "/auth/reset-passwords", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
+                        .requestMatchers("/auth/login", "/auth/logout", "/auth/reset-passwords", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/api/health").permitAll()
                         .requestMatchers("/auth/change-password").authenticated()
                         .anyRequest().authenticated()
                 );
