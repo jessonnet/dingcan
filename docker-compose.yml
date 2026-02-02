@@ -50,8 +50,8 @@ services:
   # 后端应用
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     container_name: canteen-backend
     restart: always
     ports:
