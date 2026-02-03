@@ -1,23 +1,27 @@
 <template>
-  <el-container>
-    <el-header>
+  <el-container class="employee-layout">
+    <el-header class="mobile-header">
       <div class="header-left">
-        <h1>单位内部饭堂订餐系统</h1>
+        <h1 class="system-title">食堂订餐</h1>
       </div>
       <div class="header-right">
-        <el-dropdown trigger="click" @command="handleCommand" @visible-change="handleDropdownVisibleChange">
+        <el-dropdown trigger="click" @command="handleCommand">
           <span class="username-dropdown">
             <el-icon class="user-icon"><User /></el-icon>
-            <span class="username">{{ user.name }}</span>
+            <span class="username hidden-xs">{{ user.name }}</span>
             <el-icon class="arrow-icon"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="changePassword">
+              <el-dropdown-item command="profile">
+                <el-icon><User /></el-icon>
+                <span>{{ user.name }}</span>
+              </el-dropdown-item>
+              <el-dropdown-item command="changePassword" divided>
                 <el-icon><Lock /></el-icon>
                 <span>修改密码</span>
               </el-dropdown-item>
-              <el-dropdown-item command="logout" divided>
+              <el-dropdown-item command="logout">
                 <el-icon><SwitchButton /></el-icon>
                 <span>退出登录</span>
               </el-dropdown-item>
@@ -26,123 +30,101 @@
         </el-dropdown>
       </div>
     </el-header>
-    <el-container>
-      <el-aside width="200px">
-        <el-menu
-          :default-active="activeMenu"
-          class="el-menu-vertical-demo"
-          @select="handleMenuSelect"
-        >
-          <el-menu-item index="/employee/order">
-            <el-icon><Calendar /></el-icon>
-            <span>在线订餐</span>
-          </el-menu-item>
-          <el-menu-item index="/employee/order-history">
-            <el-icon><Clock /></el-icon>
-            <span>订单历史</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
-      <el-main>
-        <router-view />
-      </el-main>
-    </el-container>
+    
+    <!-- 主内容区域 - 移除左侧菜单栏 -->
+    <el-main class="main-content">
+      <router-view />
+    </el-main>
 
+    <!-- 修改密码对话框 -->
     <el-dialog
       v-model="changePasswordDialogVisible"
       title="修改密码"
-      width="400px"
+      width="360px"
       :close-on-click-modal="false"
-      :close-on-press-escape="false"
+      destroy-on-close
     >
-      <el-form :model="changePasswordForm" label-width="100px">
+      <el-form :model="changePasswordForm" label-width="90px" class="password-form">
         <el-form-item label="当前密码">
           <el-input
             v-model="changePasswordForm.currentPassword"
             type="password"
             placeholder="请输入当前密码"
             show-password
-            @keyup.enter="handleSubmitChangePassword"
           />
         </el-form-item>
         <el-form-item label="新密码">
           <el-input
             v-model="changePasswordForm.newPassword"
             type="password"
-            placeholder="请输入新密码（至少6位）"
+            placeholder="至少6位字符"
             show-password
-            @keyup.enter="handleSubmitChangePassword"
           />
         </el-form-item>
-        <el-form-item label="确认新密码">
+        <el-form-item label="确认密码">
           <el-input
             v-model="changePasswordForm.confirmPassword"
             type="password"
             placeholder="请再次输入新密码"
             show-password
-            @keyup.enter="handleSubmitChangePassword"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="handleCancelChangePassword">取消</el-button>
-          <el-button type="primary" @click="handleSubmitChangePassword">确定</el-button>
-        </span>
+        <el-button @click="changePasswordDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitChangePassword" :loading="submitting">
+          确认修改
+        </el-button>
       </template>
     </el-dialog>
   </el-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { Calendar, Clock, User, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { User, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
-const route = useRoute()
-let userData = {}
-try {
-  userData = JSON.parse(localStorage.getItem('user') || '{}')
-} catch (error) {
-  userData = {}
-}
-const user = ref(userData)
 
-const activeMenu = computed(() => {
-  return route.path
-})
+// 用户信息
+const user = ref({ name: '' })
 
-const handleMenuSelect = (key) => {
-  router.push(key)
+// 加载用户信息
+const loadUserInfo = () => {
+  try {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}')
+    user.value = userData
+  } catch (error) {
+    console.error('加载用户信息失败:', error)
+  }
 }
 
+// 下拉菜单处理
 const handleCommand = (command) => {
-  if (command === 'changePassword') {
-    showChangePasswordDialog()
-  } else if (command === 'logout') {
-    handleLogout()
+  switch (command) {
+    case 'changePassword':
+      showChangePasswordDialog()
+      break
+    case 'logout':
+      handleLogout()
+      break
   }
 }
 
-const handleDropdownVisibleChange = (visible) => {
-  if (visible) {
-    document.addEventListener('click', handleDocumentClick)
-  } else {
-    document.removeEventListener('click', handleDocumentClick)
-  }
+// 退出登录
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
+  ElMessage.success('已退出登录')
 }
 
-const handleDocumentClick = (event) => {
-  const dropdown = document.querySelector('.el-dropdown')
-  if (dropdown && !dropdown.contains(event.target)) {
-    dropdown.classList.remove('is-active')
-  }
-}
-
+// 修改密码
 const changePasswordDialogVisible = ref(false)
+const submitting = ref(false)
 const changePasswordForm = ref({
   currentPassword: '',
   newPassword: '',
@@ -158,16 +140,8 @@ const showChangePasswordDialog = () => {
   changePasswordDialogVisible.value = true
 }
 
-const handleCancelChangePassword = () => {
-  changePasswordDialogVisible.value = false
-  changePasswordForm.value = {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  }
-}
-
 const handleSubmitChangePassword = async () => {
+  // 表单验证
   if (!changePasswordForm.value.currentPassword) {
     ElMessage.warning('请输入当前密码')
     return
@@ -185,72 +159,64 @@ const handleSubmitChangePassword = async () => {
     return
   }
 
+  submitting.value = true
   try {
     const response = await axios.post('/api/auth/change-password', {
       currentPassword: changePasswordForm.value.currentPassword,
       newPassword: changePasswordForm.value.newPassword
     })
 
-    if (response.success) {
+    if (response.data?.success || response.success) {
       ElMessage.success('密码修改成功，请重新登录')
       changePasswordDialogVisible.value = false
-      changePasswordForm.value = {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }
-      handleLogout()
+      // 退出登录
+      setTimeout(() => {
+        handleLogout()
+      }, 1500)
     } else {
-      ElMessage.error(response.message || '密码修改失败')
+      ElMessage.error(response.data?.message || response.message || '密码修改失败')
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '密码修改失败，请稍后重试')
-  }
-}
-
-const handleLogout = async () => {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    await axios.post('/api/auth/logout')
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    router.push('/login')
-    ElMessage.success('登出成功')
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('登出失败')
-    }
+    console.error('修改密码失败:', error)
+    ElMessage.error('修改密码失败：' + (error.response?.data?.message || error.message || '网络错误'))
+  } finally {
+    submitting.value = false
   }
 }
 
 onMounted(() => {
-  if (!localStorage.getItem('token')) {
-    router.push('/login')
-  }
+  loadUserInfo()
 })
 </script>
 
 <style scoped>
-.header-left {
-  float: left;
+.employee-layout {
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* 移动端优化的头部 */
+.mobile-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  height: 56px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.system-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .header-right {
-  float: right;
   display: flex;
   align-items: center;
-  gap: 20px;
-}
-
-.header-left h1 {
-  font-size: 20px;
-  margin: 0;
-  color: #fff;
 }
 
 .username-dropdown {
@@ -258,14 +224,14 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-  color: #fff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: background-color 0.3s;
 }
 
 .username-dropdown:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .user-icon {
@@ -274,48 +240,59 @@ onMounted(() => {
 
 .username {
   font-size: 14px;
-  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .arrow-icon {
   font-size: 12px;
-  transition: transform 0.3s ease;
 }
 
-.el-menu-vertical-demo {
-  height: 100%;
-  background-color: #5470c6;
+/* 主内容区域 */
+.main-content {
+  padding: 0;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 56px);
 }
 
-.el-menu-item {
-  color: #fff;
+/* 密码表单 */
+.password-form {
+  padding: 10px 0;
 }
 
-.el-menu-item.is-active {
-  background-color: #667eea;
-  color: #fff;
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .mobile-header {
+    padding: 0 10px;
+    height: 50px;
+  }
+  
+  .system-title {
+    font-size: 16px;
+  }
+  
+  .username-dropdown {
+    padding: 5px 10px;
+  }
+  
+  .hidden-xs {
+    display: none;
+  }
+  
+  .main-content {
+    min-height: calc(100vh - 50px);
+  }
 }
 
-.el-menu-item:hover {
-  background-color: #667eea;
-  color: #fff;
-}
-
-.el-icon {
-  color: #fff;
-}
-
-.el-dropdown-menu {
-  margin-top: 8px;
-}
-
-.el-dropdown-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.el-dropdown-menu__item .el-icon {
-  color: #606266;
+@media (max-width: 480px) {
+  .mobile-header {
+    padding: 0 8px;
+  }
+  
+  .system-title {
+    font-size: 15px;
+  }
 }
 </style>

@@ -25,16 +25,7 @@ const routes = [
       {
         path: 'order',
         name: 'EmployeeOrder',
-        component: () => import('../views/employee/Order.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['employee']
-        }
-      },
-      {
-        path: 'order-history',
-        name: 'EmployeeOrderHistory',
-        component: () => import('../views/employee/OrderHistory.vue'),
+        component: () => import('../views/employee/OrderManage.vue'),
         meta: {
           requiresAuth: true,
           roles: ['employee']
@@ -55,15 +46,6 @@ const routes = [
         path: 'order-status',
         name: 'ChefOrderStatus',
         component: () => import('../views/chef/OrderStatus.vue'),
-        meta: {
-          requiresAuth: true,
-          roles: ['chef']
-        }
-      },
-      {
-        path: 'statistics',
-        name: 'ChefStatistics',
-        component: () => import('../views/chef/Statistics.vue'),
         meta: {
           requiresAuth: true,
           roles: ['chef']

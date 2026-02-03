@@ -54,17 +54,17 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      * @return 是否成功
      */
     @Override
-    public boolean createOrder(Order order, Long userId, String ipAddress) {
+    public Long createOrder(Order order, Long userId, String ipAddress) {
         // 检查是否可以预订
         if (!canOrder(order.getOrderDate())) {
-            return false;
+            return null;
         }
 
         // 检查是否已经预订同一种餐食类型
         List<Order> existingOrders = orderMapper.selectByUserIdAndDate(userId, order.getOrderDate());
         for (Order existingOrder : existingOrders) {
             if (existingOrder.getMealTypeId().equals(order.getMealTypeId())) {
-                return false;
+                return null;
             }
         }
 
@@ -94,9 +94,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 // 日志记录失败不影响主业务流程
                 System.err.println("记录操作日志失败: " + e.getMessage());
             }
+            return order.getId();
         }
 
-        return result;
+        return null;
     }
 
     /**
@@ -293,6 +294,22 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<Order> getOrdersByUserIdAndDate(Long userId, LocalDate orderDate) {
         return orderMapper.selectByUserIdAndDate(userId, orderDate);
+    }
+
+    /**
+     * 根据用户ID和日期范围查询订单
+     * @param userId 用户ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 订单列表
+     */
+    @Override
+    public List<Order> getOrdersByUserIdAndDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        queryWrapper.between("order_date", startDate, endDate);
+        queryWrapper.orderByAsc("order_date");
+        return orderMapper.selectList(queryWrapper);
     }
 
     /**

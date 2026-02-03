@@ -3,6 +3,7 @@ package com.canteen.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -26,13 +27,20 @@ public class Order implements Serializable {
 
     private Long mealTypeId;
 
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate orderDate;
 
     private Integer status;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+
+    // 非数据库字段，用于前端展示
+    private transient String mealTypeName;
+    private transient java.math.BigDecimal price;
 
     public Long getId() {
         return id;
@@ -88,6 +96,22 @@ public class Order implements Serializable {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getMealTypeName() {
+        return mealTypeName;
+    }
+
+    public void setMealTypeName(String mealTypeName) {
+        this.mealTypeName = mealTypeName;
+    }
+
+    public java.math.BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(java.math.BigDecimal price) {
+        this.price = price;
     }
 
 }

@@ -1,49 +1,33 @@
 <template>
-  <el-container>
-    <el-header>
-      <div class="header-left">
-        <h1>单位内部饭堂订餐系统</h1>
-      </div>
-      <div class="header-right">
-        <el-dropdown trigger="click" @command="handleCommand" @visible-change="handleDropdownVisibleChange">
-          <span class="username-dropdown">
-            <el-icon class="user-icon"><User /></el-icon>
-            <span class="username">{{ user.name }}</span>
-            <el-icon class="arrow-icon"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="changePassword">
-                <el-icon><Lock /></el-icon>
-                <span>修改密码</span>
-              </el-dropdown-item>
-              <el-dropdown-item command="logout" divided>
-                <el-icon><SwitchButton /></el-icon>
-                <span>退出登录</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-    </el-header>
-    <el-container>
-      <el-aside width="200px">
-        <el-menu
-          :default-active="activeMenu"
-          class="el-menu-vertical-demo"
-          @select="handleMenuSelect"
-        >
-          <el-menu-item index="/chef/order-status">
-            <el-icon><DataLine /></el-icon>
-            <span>订餐情况</span>
-          </el-menu-item>
-          <el-menu-item index="/chef/statistics">
-            <el-icon><PieChart /></el-icon>
-            <span>统计分析</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
-      <el-main>
+  <div class="chef-layout">
+    <el-container class="main-container">
+      <el-header class="header">
+        <div class="header-left">
+          <h1>单位内部饭堂订餐系统</h1>
+        </div>
+        <div class="header-right">
+          <el-dropdown trigger="click" @command="handleCommand" @visible-change="handleDropdownVisibleChange">
+            <span class="username-dropdown">
+              <el-icon class="user-icon"><User /></el-icon>
+              <span class="username">{{ user.name }}</span>
+              <el-icon class="arrow-icon"><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="changePassword">
+                  <el-icon><Lock /></el-icon>
+                  <span>修改密码</span>
+                </el-dropdown-item>
+                <el-dropdown-item command="logout" divided>
+                  <el-icon><SwitchButton /></el-icon>
+                  <span>退出登录</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </el-header>
+      <el-main class="main-content">
         <router-view />
       </el-main>
     </el-container>
@@ -51,7 +35,7 @@
     <el-dialog
       v-model="changePasswordDialogVisible"
       title="修改密码"
-      width="400px"
+      width="90%"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
     >
@@ -91,13 +75,13 @@
         </span>
       </template>
     </el-dialog>
-  </el-container>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { DataLine, PieChart, User, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
+import { User, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -110,14 +94,6 @@ try {
   userData = {}
 }
 const user = ref(userData)
-
-const activeMenu = computed(() => {
-  return route.path
-})
-
-const handleMenuSelect = (key) => {
-  router.push(key)
-}
 
 const handleCommand = (command) => {
   if (command === 'changePassword') {
@@ -191,7 +167,7 @@ const handleSubmitChangePassword = async () => {
       newPassword: changePasswordForm.value.newPassword
     })
 
-    if (response.data.success) {
+    if (response.success) {
       ElMessage.success('密码修改成功，请重新登录')
       changePasswordDialogVisible.value = false
       changePasswordForm.value = {
@@ -201,7 +177,7 @@ const handleSubmitChangePassword = async () => {
       }
       handleLogout()
     } else {
-      ElMessage.error(response.data.message || '密码修改失败')
+      ElMessage.error(response.message || '密码修改失败')
     }
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '密码修改失败，请稍后重试')
@@ -236,21 +212,42 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.header-left {
-  float: left;
+.chef-layout {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.header-right {
-  float: right;
+.main-container {
+  width: 100%;
+  height: 100%;
   display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  height: 60px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-left h1 {
-  font-size: 20px;
+  font-size: 18px;
   margin: 0;
   color: #fff;
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .username-dropdown {
@@ -262,10 +259,11 @@ onMounted(() => {
   border-radius: 4px;
   transition: all 0.3s ease;
   color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .username-dropdown:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .user-icon {
@@ -282,27 +280,11 @@ onMounted(() => {
   transition: transform 0.3s ease;
 }
 
-.el-menu-vertical-demo {
-  height: 100%;
-  background-color: #5470c6;
-}
-
-.el-menu-item {
-  color: #fff;
-}
-
-.el-menu-item.is-active {
-  background-color: #667eea;
-  color: #fff;
-}
-
-.el-menu-item:hover {
-  background-color: #667eea;
-  color: #fff;
-}
-
-.el-icon {
-  color: #fff;
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #f5f7fa;
 }
 
 .el-dropdown-menu {
@@ -317,5 +299,61 @@ onMounted(() => {
 
 .el-dropdown-menu__item .el-icon {
   color: #606266;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 15px;
+    height: 50px;
+  }
+
+  .header-left h1 {
+    font-size: 16px;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .username {
+    display: none;
+  }
+
+  .main-content {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0 10px;
+    height: 45px;
+  }
+
+  .header-left h1 {
+    font-size: 14px;
+  }
+
+  .username-dropdown {
+    padding: 6px 8px;
+  }
+
+  .user-icon {
+    font-size: 16px;
+  }
+
+  .arrow-icon {
+    font-size: 10px;
+  }
+
+  .main-content {
+    padding: 10px;
+  }
 }
 </style>

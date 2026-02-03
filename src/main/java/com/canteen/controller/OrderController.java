@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,10 +59,11 @@ public class OrderController {
         String ipAddress = request.getRemoteAddr();
 
         // 创建订单
-        boolean success = orderService.createOrder(order, user.getId(), ipAddress);
-        if (success) {
+        Long orderId = orderService.createOrder(order, user.getId(), ipAddress);
+        if (orderId != null) {
             result.put("success", true);
             result.put("message", "订餐成功");
+            result.put("orderId", orderId);
         } else {
             result.put("success", false);
             result.put("message", "订餐失败，可能已经预订或超过预订时间");
@@ -325,6 +327,125 @@ public class OrderController {
         List<MealType> mealTypes = mealTypeService.list();
         result.put("success", true);
         result.put("data", mealTypes);
+        return result;
+    }
+
+    /**
+     * 根据日期范围查询订单列表
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 结果
+     */
+    @GetMapping("/list")
+    public Map<String, Object> getOrderListByDateRange(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取当前用户
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        com.canteen.entity.User user = userService.findByUsername(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+
+        // 查询订单
+        List<Order> orders;
+        if (startDate != null && endDate != null) {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            orders = orderService.getOrdersByUserIdAndDateRange(user.getId(), start, end);
+        } else {
+            // 默认查询最近3个月的订单
+            LocalDate end = LocalDate.now();
+            LocalDate start = end.minusMonths(3);
+            orders = orderService.getOrdersByUserIdAndDateRange(user.getId(), start, end);
+        }
+
+        // 填充餐食类型名称和价格
+        List<MealType> mealTypes = mealTypeService.list();
+        Map<Long, MealType> mealTypeMap = new HashMap<>();
+        for (MealType mealType : mealTypes) {
+            mealTypeMap.put(mealType.getId(), mealType);
+        }
+
+        for (Order order : orders) {
+            MealType mealType = mealTypeMap.get(order.getMealTypeId());
+            if (mealType != null) {
+                order.setMealTypeName(mealType.getName());
+                order.setPrice(mealType.getPrice());
+            }
+        }
+
+        result.put("success", true);
+        result.put("data", orders);
+        return result;
+    }
+
+    /**
+     * 分页查询订单列表
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 结果
+     */
+    @GetMapping("/page")
+    public Map<String, Object> getOrderPage(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 获取当前用户
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        com.canteen.entity.User user = userService.findByUsername(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+
+        // 查询订单
+        List<Order> orders;
+        if (startDate != null && endDate != null) {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            orders = orderService.getOrdersByUserIdAndDateRange(user.getId(), start, end);
+        } else {
+            // 默认查询最近3个月的订单
+            LocalDate end = LocalDate.now();
+            LocalDate start = end.minusMonths(3);
+            orders = orderService.getOrdersByUserIdAndDateRange(user.getId(), start, end);
+        }
+
+        // 填充餐食类型名称和价格
+        List<MealType> mealTypes = mealTypeService.list();
+        Map<Long, MealType> mealTypeMap = new HashMap<>();
+        for (MealType mealType : mealTypes) {
+            mealTypeMap.put(mealType.getId(), mealType);
+        }
+
+        for (Order order : orders) {
+            MealType mealType = mealTypeMap.get(order.getMealTypeId());
+            if (mealType != null) {
+                order.setMealTypeName(mealType.getName());
+                order.setPrice(mealType.getPrice());
+            }
+        }
+
+        // 分页处理
+        int total = orders.size();
+        int fromIndex = (page - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, total);
+        List<Order> pageData = fromIndex < total ? orders.subList(fromIndex, toIndex) : new ArrayList<>();
+
+        result.put("success", true);
+        result.put("data", pageData);
+        result.put("total", total);
         return result;
     }
 

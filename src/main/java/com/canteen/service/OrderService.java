@@ -20,9 +20,9 @@ public interface OrderService extends IService<Order> {
      * @param order 订单信息
      * @param userId 用户ID
      * @param ipAddress IP地址
-     * @return 是否成功
+     * @return 订单ID（失败返回null）
      */
-    boolean createOrder(Order order, Long userId, String ipAddress);
+    Long createOrder(Order order, Long userId, String ipAddress);
 
     /**
      * 批量创建订单
@@ -59,6 +59,15 @@ public interface OrderService extends IService<Order> {
      * @return 订单列表
      */
     List<Order> getOrdersByUserIdAndDate(Long userId, LocalDate orderDate);
+
+    /**
+     * 根据用户ID和日期范围查询订单
+     * @param userId 用户ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 订单列表
+     */
+    List<Order> getOrdersByUserIdAndDateRange(Long userId, LocalDate startDate, LocalDate endDate);
 
     /**
      * 根据用户ID查询订单历史
