@@ -33,6 +33,9 @@ public class User implements Serializable {
 
     private Long departmentId;
 
+    @TableField("restaurant_id")
+    private Long restaurantId;
+
     private String phone;
 
     private String email;
@@ -51,6 +54,9 @@ public class User implements Serializable {
 
     @TableField(exist = false)
     private String departmentName;
+
+    @TableField(exist = false)
+    private String restaurantName;
 
     public Long getId() {
         return id;
@@ -162,6 +168,22 @@ public class User implements Serializable {
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
+    }
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
     }
 
 }

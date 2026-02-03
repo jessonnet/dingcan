@@ -35,6 +35,17 @@ public interface OrderService extends IService<Order> {
     Map<String, Object> batchCreateOrders(Long mealTypeId, List<LocalDate> orderDates, Long userId, String ipAddress);
 
     /**
+     * 批量创建订单（带餐厅ID）
+     * @param mealTypeId 餐食类型ID
+     * @param orderDates 订单日期列表
+     * @param userId 用户ID
+     * @param ipAddress IP地址
+     * @param restaurantId 餐厅ID
+     * @return 创建结果（成功数量和失败信息）
+     */
+    Map<String, Object> batchCreateOrders(Long mealTypeId, List<LocalDate> orderDates, Long userId, String ipAddress, Long restaurantId);
+
+    /**
      * 修改订单
      * @param order 订单信息
      * @param userId 用户ID

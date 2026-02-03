@@ -27,6 +27,8 @@ public class Order implements Serializable {
 
     private Long mealTypeId;
 
+    private Long restaurantId;
+
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate orderDate;
 
@@ -41,6 +43,7 @@ public class Order implements Serializable {
     // 非数据库字段，用于前端展示
     private transient String mealTypeName;
     private transient java.math.BigDecimal price;
+    private transient String restaurantName;
 
     public Long getId() {
         return id;
@@ -64,6 +67,14 @@ public class Order implements Serializable {
 
     public void setMealTypeId(Long mealTypeId) {
         this.mealTypeId = mealTypeId;
+    }
+
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
     }
 
     public LocalDate getOrderDate() {
@@ -112,6 +123,14 @@ public class Order implements Serializable {
 
     public void setPrice(java.math.BigDecimal price) {
         this.price = price;
+    }
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
     }
 
 }

@@ -187,6 +187,88 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     /**
+     * 批量创建订单（带餐厅ID）
+     */
+    @Override
+    public Map<String, Object> batchCreateOrders(Long mealTypeId, List<LocalDate> orderDates, Long userId, String ipAddress, Long restaurantId) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        int successCount = 0;
+        int failCount = 0;
+        List<String> failMessages = new java.util.ArrayList<>();
+
+        for (LocalDate orderDate : orderDates) {
+            // 检查是否可以预订
+            if (!canOrder(orderDate)) {
+                failCount++;
+                failMessages.add(orderDate + ": 超过预订时间");
+                continue;
+            }
+
+            // 检查是否已经预订同一种餐食类型
+            List<Order> existingOrders = orderMapper.selectByUserIdAndDate(userId, orderDate);
+            boolean alreadyOrdered = false;
+            for (Order existingOrder : existingOrders) {
+                if (existingOrder.getMealTypeId().equals(mealTypeId)) {
+                    alreadyOrdered = true;
+                    break;
+                }
+            }
+
+            if (alreadyOrdered) {
+                failCount++;
+                failMessages.add(orderDate + ": 已预订该餐食类型");
+                continue;
+            }
+
+            // 创建订单
+            Order order = new Order();
+            order.setMealTypeId(mealTypeId);
+            order.setOrderDate(orderDate);
+            order.setUserId(userId);
+            order.setRestaurantId(restaurantId);
+            order.setStatus(1);
+            order.setCreatedAt(LocalDateTime.now());
+            order.setUpdatedAt(LocalDateTime.now());
+
+            boolean insertResult = orderMapper.insert(order) > 0;
+            if (insertResult) {
+                successCount++;
+            } else {
+                failCount++;
+                failMessages.add(orderDate + ": 创建订单失败");
+            }
+        }
+
+        // 记录操作日志
+        if (successCount > 0) {
+            try {
+                OperationLog log = new OperationLog();
+                log.setUserId(userId);
+                // 获取用户名
+                com.canteen.entity.User user = userService.getById(userId);
+                log.setUsername(user != null ? user.getUsername() : String.valueOf(userId));
+                log.setOperationType("ORDER");
+                log.setModule("订单管理");
+                log.setDescription("用户批量预订了 " + successCount + " 天的餐食");
+                log.setCreatedAt(LocalDateTime.now());
+                log.setIpAddress(ipAddress);
+                log.setStatus(1);
+                operationLogMapper.insert(log);
+            } catch (Exception e) {
+                // 日志记录失败不影响主业务流程
+                System.err.println("记录操作日志失败: " + e.getMessage());
+            }
+        }
+
+        result.put("success", successCount > 0);
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        result.put("failMessages", failMessages);
+
+        return result;
+    }
+
+    /**
      * 修改订单
      * @param order 订单信息
      * @param userId 用户ID
@@ -489,6 +571,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Autowired
     private com.canteen.mapper.DepartmentMapper departmentMapper;
 
+    @Autowired
+    private com.canteen.mapper.RestaurantMapper restaurantMapper;
+
     /**
      * 获取订单列表（支持分页、筛选、排序）
      */
@@ -601,10 +686,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             return false;
         }
         
-        // 逻辑删除，将状态设置为0
-        order.setStatus(0);
-        order.setUpdatedAt(LocalDateTime.now());
-        return orderMapper.updateById(order) > 0;
+        // 物理删除订单记录
+        return orderMapper.deleteById(id) > 0;
     }
 
     /**
@@ -722,6 +805,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (mealType != null) {
             dto.setMealTypeName(mealType.getName());
             dto.setMealPrice(mealType.getPrice());
+        }
+        
+        // 查询餐厅信息
+        if (order.getRestaurantId() != null) {
+            com.canteen.entity.Restaurant restaurant = restaurantMapper.selectById(order.getRestaurantId());
+            if (restaurant != null) {
+                dto.setRestaurantId(restaurant.getId());
+                dto.setRestaurantName(restaurant.getName());
+            }
         }
         
         return dto;

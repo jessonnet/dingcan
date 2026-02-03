@@ -49,6 +49,10 @@
             <el-icon><OfficeBuilding /></el-icon>
             <span>部门设置</span>
           </el-menu-item>
+          <el-menu-item index="/admin/restaurant">
+            <el-icon><Van /></el-icon>
+            <span>餐厅管理</span>
+          </el-menu-item>
           <el-menu-item index="/admin/role">
             <el-icon><UserFilled /></el-icon>
             <span>角色管理</span>
@@ -117,7 +121,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Setting, Food, User, UserFilled, OfficeBuilding, Document, ArrowDown, Lock, SwitchButton, List } from '@element-plus/icons-vue'
+import { Setting, Food, User, UserFilled, OfficeBuilding, Document, ArrowDown, Lock, SwitchButton, List, Van } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 

@@ -48,11 +48,27 @@ public class ChefController {
         Map<String, Object> result = new HashMap<>();
 
         try {
+            // 获取当前用户
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = userService.findByUsername(username);
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "用户不存在");
+                return result;
+            }
+
             // 解析日期
             LocalDate date = LocalDate.parse(orderDate);
 
             // 查询订单
             List<Order> orders = orderService.getOrdersByDate(date);
+
+            // 过滤：只显示与厨师关联食堂相关的订单
+            if (currentUser.getRestaurantId() != null) {
+                orders = orders.stream()
+                        .filter(order -> order.getRestaurantId() != null && order.getRestaurantId().equals(currentUser.getRestaurantId()))
+                        .collect(Collectors.toList());
+            }
 
             // 获取餐食类型
             List<MealType> mealTypes = mealTypeService.getEnabledMealTypes();
@@ -104,6 +120,15 @@ public class ChefController {
         Map<String, Object> result = new HashMap<>();
 
         try {
+            // 获取当前用户
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = userService.findByUsername(username);
+            if (currentUser == null) {
+                result.put("success", false);
+                result.put("message", "用户不存在");
+                return result;
+            }
+
             // 解析日期
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
@@ -117,6 +142,14 @@ public class ChefController {
 
             for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
                 List<Order> orders = orderService.getOrdersByDate(date);
+
+                // 过滤：只显示与厨师关联食堂相关的订单
+                if (currentUser.getRestaurantId() != null) {
+                    orders = orders.stream()
+                            .filter(order -> order.getRestaurantId() != null && order.getRestaurantId().equals(currentUser.getRestaurantId()))
+                            .collect(Collectors.toList());
+                }
+
                 Map<Long, Integer> mealTypeCount = new HashMap<>();
                 for (MealType mealType : mealTypes) {
                     int count = (int) orders.stream().filter(order -> order.getMealTypeId().equals(mealType.getId())).count();

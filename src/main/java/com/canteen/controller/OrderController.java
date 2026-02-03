@@ -4,9 +4,11 @@ import com.canteen.annotation.Log;
 import com.canteen.dto.AggregatedOrderDTO;
 import com.canteen.entity.Order;
 import com.canteen.entity.MealType;
+import com.canteen.entity.Restaurant;
 import com.canteen.service.OrderService;
 import com.canteen.service.UserService;
 import com.canteen.service.MealTypeService;
+import com.canteen.service.RestaurantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +36,9 @@ public class OrderController {
 
     @Autowired
     private MealTypeService mealTypeService;
+
+    @Autowired
+    private RestaurantService restaurantService;
 
     /**
      * 创建订单
@@ -99,6 +104,10 @@ public class OrderController {
         Long mealTypeId = Long.valueOf(batchOrderData.get("mealTypeId").toString());
         @SuppressWarnings("unchecked")
         List<String> orderDateStrs = (List<String>) batchOrderData.get("orderDates");
+        Long restaurantId = null;
+        if (batchOrderData.containsKey("restaurantId") && batchOrderData.get("restaurantId") != null) {
+            restaurantId = Long.valueOf(batchOrderData.get("restaurantId").toString());
+        }
 
         // 转换日期字符串为LocalDate
         List<java.time.LocalDate> orderDates = new java.util.ArrayList<>();
@@ -107,7 +116,7 @@ public class OrderController {
         }
 
         // 批量创建订单
-        Map<String, Object> batchResult = orderService.batchCreateOrders(mealTypeId, orderDates, user.getId(), ipAddress);
+        Map<String, Object> batchResult = orderService.batchCreateOrders(mealTypeId, orderDates, user.getId(), ipAddress, restaurantId);
 
         result.putAll(batchResult);
 
@@ -371,16 +380,35 @@ public class OrderController {
             mealTypeMap.put(mealType.getId(), mealType);
         }
 
+        // 填充餐厅信息
+        List<Restaurant> restaurants = restaurantService.list();
+        Map<Long, Restaurant> restaurantMap = new HashMap<>();
+        for (Restaurant restaurant : restaurants) {
+            restaurantMap.put(restaurant.getId(), restaurant);
+        }
+
         for (Order order : orders) {
             MealType mealType = mealTypeMap.get(order.getMealTypeId());
             if (mealType != null) {
                 order.setMealTypeName(mealType.getName());
                 order.setPrice(mealType.getPrice());
             }
+            Restaurant restaurant = restaurantMap.get(order.getRestaurantId());
+            if (restaurant != null) {
+                order.setRestaurantName(restaurant.getName());
+            }
+        }
+
+        // 过滤有效订单
+        List<Order> validOrders = new ArrayList<>();
+        for (Order order : orders) {
+            if (order.getStatus() != null && order.getStatus() == 1) {
+                validOrders.add(order);
+            }
         }
 
         result.put("success", true);
-        result.put("data", orders);
+        result.put("data", validOrders);
         return result;
     }
 
@@ -429,19 +457,38 @@ public class OrderController {
             mealTypeMap.put(mealType.getId(), mealType);
         }
 
+        // 填充餐厅信息
+        List<Restaurant> restaurants = restaurantService.list();
+        Map<Long, Restaurant> restaurantMap = new HashMap<>();
+        for (Restaurant restaurant : restaurants) {
+            restaurantMap.put(restaurant.getId(), restaurant);
+        }
+
         for (Order order : orders) {
             MealType mealType = mealTypeMap.get(order.getMealTypeId());
             if (mealType != null) {
                 order.setMealTypeName(mealType.getName());
                 order.setPrice(mealType.getPrice());
             }
+            Restaurant restaurant = restaurantMap.get(order.getRestaurantId());
+            if (restaurant != null) {
+                order.setRestaurantName(restaurant.getName());
+            }
+        }
+
+        // 过滤有效订单
+        List<Order> validOrders = new ArrayList<>();
+        for (Order order : orders) {
+            if (order.getStatus() != null && order.getStatus() == 1) {
+                validOrders.add(order);
+            }
         }
 
         // 分页处理
-        int total = orders.size();
+        int total = validOrders.size();
         int fromIndex = (page - 1) * pageSize;
         int toIndex = Math.min(fromIndex + pageSize, total);
-        List<Order> pageData = fromIndex < total ? orders.subList(fromIndex, toIndex) : new ArrayList<>();
+        List<Order> pageData = fromIndex < total ? validOrders.subList(fromIndex, toIndex) : new ArrayList<>();
 
         result.put("success", true);
         result.put("data", pageData);

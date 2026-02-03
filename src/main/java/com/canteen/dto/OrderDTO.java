@@ -43,6 +43,16 @@ public class OrderDTO implements Serializable {
     private String departmentName;
 
     /**
+     * 餐厅ID
+     */
+    private Long restaurantId;
+
+    /**
+     * 餐厅名称
+     */
+    private String restaurantName;
+
+    /**
      * 餐食类型ID
      */
     private Long mealTypeId;
@@ -129,6 +139,22 @@ public class OrderDTO implements Serializable {
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
+    }
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
     }
 
     public Long getMealTypeId() {

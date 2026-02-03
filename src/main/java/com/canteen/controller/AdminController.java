@@ -3,12 +3,14 @@ package com.canteen.controller;
 import com.canteen.annotation.Log;
 import com.canteen.entity.Department;
 import com.canteen.entity.MealType;
+import com.canteen.entity.Restaurant;
 import com.canteen.entity.Role;
 import com.canteen.entity.SystemConfig;
 import com.canteen.entity.User;
 import com.canteen.service.DepartmentService;
 import com.canteen.service.MealTypeService;
 import com.canteen.service.OrderService;
+import com.canteen.service.RestaurantService;
 import com.canteen.service.RoleService;
 import com.canteen.service.SystemConfigService;
 import com.canteen.service.UserService;
@@ -44,6 +46,9 @@ public class AdminController {
 
     @Autowired
     private DepartmentService departmentService;
+
+    @Autowired
+    private RestaurantService restaurantService;
 
     // ==================== 餐食类型管理 ====================
 
@@ -144,13 +149,17 @@ public class AdminController {
     public Map<String, Object> getUserList() {
         Map<String, Object> result = new HashMap<>();
         List<User> users = userService.getAllUsers();
-        // 关联角色和部门信息
+        // 关联角色、部门和餐厅信息
         for (User user : users) {
             Role role = roleService.getById(user.getRoleId());
             user.setRoleName(role != null ? role.getName() : "");
             if (user.getDepartmentId() != null) {
                 Department department = departmentService.getById(user.getDepartmentId());
                 user.setDepartmentName(department != null ? department.getName() : "");
+            }
+            if (user.getRestaurantId() != null) {
+                Restaurant restaurant = restaurantService.getById(user.getRestaurantId());
+                user.setRestaurantName(restaurant != null ? restaurant.getName() : "");
             }
         }
         result.put("success", true);

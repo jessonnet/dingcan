@@ -8,6 +8,16 @@
       </template>
       <div class="order-content">
         <el-form :model="orderForm" :rules="rules" ref="orderFormRef" label-width="100px">
+          <el-form-item label="食堂" prop="restaurantId">
+            <el-select v-model="orderForm.restaurantId" placeholder="选择食堂" style="width: 100%" :disabled="loadingRestaurants">
+              <el-option
+                v-for="restaurant in availableRestaurants"
+                :key="restaurant.id"
+                :label="restaurant.name + (restaurant.isDefault ? ' (默认)' : '')"
+                :value="restaurant.id"
+              />
+            </el-select>
+          </el-form-item>
           <el-form-item label="餐食类型" prop="mealTypeId">
             <el-select v-model="orderForm.mealTypeId" placeholder="选择餐食类型" style="width: 100%">
               <el-option
@@ -61,10 +71,14 @@ const orderFormRef = ref(null)
 const submitting = ref(false)
 const orderForm = ref({
   orderDates: [],
-  mealTypeId: ''
+  mealTypeId: '',
+  restaurantId: ''
 })
 
 const rules = {
+  restaurantId: [
+    { required: true, message: '请选择食堂', trigger: 'change' }
+  ],
   mealTypeId: [
     { required: true, message: '请选择餐食类型', trigger: 'change' }
   ],
@@ -74,6 +88,44 @@ const rules = {
 }
 
 const mealTypes = ref([])
+const restaurants = ref([])
+const loadingRestaurants = ref(false)
+const userDepartmentId = ref(null)
+const userRestaurantId = ref(null)
+
+const availableRestaurants = computed(() => {
+  const result = []
+  const restaurantIds = new Set()
+
+  console.log('availableRestaurants computed - userRestaurantId:', userRestaurantId.value)
+  console.log('availableRestaurants computed - restaurants:', restaurants.value)
+
+  // 首先添加用户关联的餐厅（不管是否可跨部门）
+  if (userRestaurantId.value) {
+    const userRestaurant = restaurants.value.find(r => r.id === userRestaurantId.value)
+    if (userRestaurant) {
+      result.push({
+        ...userRestaurant,
+        isDefault: true
+      })
+      restaurantIds.add(userRestaurant.id)
+    }
+  }
+
+  // 然后添加所有可跨部门的餐厅
+  restaurants.value.forEach(restaurant => {
+    if (restaurant.crossDepartmentBooking === 1 && !restaurantIds.has(restaurant.id)) {
+      result.push({
+        ...restaurant,
+        isDefault: false
+      })
+      restaurantIds.add(restaurant.id)
+    }
+  })
+
+  console.log('availableRestaurants computed - result:', result)
+  return result
+})
 
 const selectedDatesInfo = computed(() => {
   if (!orderForm.value.orderDates || orderForm.value.orderDates.length === 0) {
@@ -111,10 +163,52 @@ const disabledDate = (time) => {
 const handleReset = () => {
   orderForm.value = {
     orderDates: [],
-    mealTypeId: ''
+    mealTypeId: '',
+    restaurantId: ''
   }
   if (orderFormRef.value) {
     orderFormRef.value.resetFields()
+  }
+}
+
+const loadRestaurants = async () => {
+  try {
+    loadingRestaurants.value = true
+    console.log('loadRestaurants - start')
+    const response = await axios.get('/api/admin/restaurant/list')
+    console.log('loadRestaurants - response:', response)
+    if (response.success) {
+      restaurants.value = response.data
+      console.log('loadRestaurants - loaded restaurants:', restaurants.value)
+    } else {
+      ElMessage.error('加载餐厅列表失败: ' + (response.message || '未知错误'))
+    }
+  } catch (error) {
+    console.error('加载餐厅列表错误:', error)
+    ElMessage.error('加载餐厅列表失败: ' + (error.message || '网络错误'))
+  } finally {
+    loadingRestaurants.value = false
+  }
+}
+
+const loadUserInfo = () => {
+  try {
+    const userStr = localStorage.getItem('user')
+    console.log('loadUserInfo - userStr:', userStr)
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      console.log('loadUserInfo - parsed user:', user)
+      if (user && user.departmentId) {
+        userDepartmentId.value = user.departmentId
+      }
+      if (user && user.restaurantId) {
+        userRestaurantId.value = user.restaurantId
+        orderForm.value.restaurantId = user.restaurantId
+        console.log('loadUserInfo - set restaurantId:', user.restaurantId)
+      }
+    }
+  } catch (error) {
+    console.error('加载用户信息错误:', error)
   }
 }
 
@@ -143,6 +237,7 @@ const handleSubmit = async () => {
     const orderDateStrs = orderForm.value.orderDates.map(date => dayjs(date).format('YYYY-MM-DD'))
 
     const response = await axios.post('/api/order/batch-create', {
+      restaurantId: orderForm.value.restaurantId,
       mealTypeId: orderForm.value.mealTypeId,
       orderDates: orderDateStrs
     })
@@ -161,7 +256,8 @@ const handleSubmit = async () => {
 
       orderForm.value = {
         orderDates: [],
-        mealTypeId: ''
+        mealTypeId: '',
+        restaurantId: ''
       }
       if (orderFormRef.value) {
         orderFormRef.value.resetFields()
@@ -192,6 +288,8 @@ const loadMealTypes = async () => {
 }
 
 onMounted(() => {
+  loadRestaurants()
+  loadUserInfo()
   loadMealTypes()
 })
 </script>

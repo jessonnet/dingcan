@@ -3,7 +3,7 @@
 <mapper namespace="com.canteen.mapper.UserMapper">
 
     <select id="selectByUsername" parameterType="java.lang.String" resultType="com.canteen.entity.User">
-        SELECT id, username, password, name, role_id, phone, email, status, created_at, updated_at FROM user WHERE username = #{username}
+        SELECT id, username, password, name, role_id, department_id, restaurant_id, phone, email, status, created_at, updated_at FROM user WHERE username = #{username}
     </select>
 
 </mapper>

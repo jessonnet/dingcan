@@ -29,6 +29,11 @@
               {{ scope.row.departmentName }}
             </template>
           </el-table-column>
+          <el-table-column prop="restaurantName" label="食堂" width="150">
+            <template #default="scope">
+              {{ scope.row.restaurantName }}
+            </template>
+          </el-table-column>
           <el-table-column prop="roleName" label="角色" width="120">
             <template #default="scope">
               {{ scope.row.roleName }}
@@ -91,6 +96,16 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="食堂" prop="restaurantId">
+          <el-select v-model="addEmployeeForm.restaurantId" placeholder="选择食堂" clearable>
+            <el-option
+              v-for="restaurant in restaurants"
+              :key="restaurant.id"
+              :label="restaurant.name"
+              :value="restaurant.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="角色" prop="roleId">
           <el-select v-model="addEmployeeForm.roleId" placeholder="选择角色">
             <el-option
@@ -145,6 +160,16 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item label="食堂" prop="restaurantId">
+          <el-select v-model="editEmployeeForm.restaurantId" placeholder="选择食堂" clearable>
+            <el-option
+              v-for="restaurant in restaurants"
+              :key="restaurant.id"
+              :label="restaurant.name"
+              :value="restaurant.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="角色" prop="roleId">
           <el-select v-model="editEmployeeForm.roleId" placeholder="选择角色">
             <el-option
@@ -183,6 +208,7 @@ import { ElMessage } from 'element-plus'
 const employees = ref([])
 const roles = ref([])
 const departments = ref([])
+const restaurants = ref([])
 
 const addEmployeeDialogVisible = ref(false)
 const addEmployeeFormRef = ref(null)
@@ -191,6 +217,7 @@ const addEmployeeForm = ref({
   password: '',
   name: '',
   departmentId: '',
+  restaurantId: '',
   roleId: '',
   phone: '',
   email: '',
@@ -205,6 +232,7 @@ const editEmployeeForm = ref({
   password: '',
   name: '',
   departmentId: '',
+  restaurantId: '',
   roleId: '',
   phone: '',
   email: '',
@@ -223,6 +251,9 @@ const rules = {
   ],
   departmentId: [
     { required: false, message: '请选择部门', trigger: 'change' }
+  ],
+  restaurantId: [
+    { required: true, message: '请选择食堂', trigger: 'change' }
   ],
   roleId: [
     { required: true, message: '请选择角色', trigger: 'change' }
@@ -264,6 +295,9 @@ const editRules = {
   ],
   departmentId: [
     { required: false, message: '请选择部门', trigger: 'change' }
+  ],
+  restaurantId: [
+    { required: true, message: '请选择食堂', trigger: 'change' }
   ],
   roleId: [
     { required: true, message: '请选择角色', trigger: 'change' }
@@ -323,6 +357,19 @@ const loadDepartments = async () => {
   }
 }
 
+const loadRestaurants = async () => {
+  try {
+    const response = await axios.get('/api/admin/restaurant/list')
+    if (response.success) {
+      restaurants.value = response.data
+    } else {
+      ElMessage.error('加载餐厅列表失败')
+    }
+  } catch (error) {
+    ElMessage.error('加载餐厅列表失败，请检查网络连接')
+  }
+}
+
 const handleAddSubmit = async () => {
   if (!addEmployeeFormRef.value) return
   
@@ -343,6 +390,7 @@ const handleAddSubmit = async () => {
             password: '',
             name: '',
             departmentId: '',
+            restaurantId: '',
             roleId: '',
             phone: '',
             email: '',
@@ -367,6 +415,7 @@ const handleEdit = (employee) => {
     password: '',
     name: employee.name,
     departmentId: employee.departmentId,
+    restaurantId: employee.restaurantId,
     roleId: employee.roleId,
     phone: employee.phone,
     email: employee.email,
@@ -419,6 +468,7 @@ onMounted(() => {
   loadEmployees()
   loadRoles()
   loadDepartments()
+  loadRestaurants()
 })
 </script>
 

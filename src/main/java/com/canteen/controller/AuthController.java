@@ -9,6 +9,7 @@ import com.canteen.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -96,11 +97,69 @@ public class AuthController {
         userInfo.put("name", user.getName());
         userInfo.put("role", roleName);
         userInfo.put("department", departmentName);
+        userInfo.put("departmentId", user.getDepartmentId());
+        userInfo.put("restaurantId", user.getRestaurantId());
         
         result.put("success", true);
         result.put("message", "登录成功");
         result.put("token", token);
         result.put("user", userInfo);
+        
+        return result;
+    }
+
+    /**
+     * 获取当前用户信息
+     * @param request HttpServletRequest
+     * @return 用户信息
+     */
+    @GetMapping("/user/info")
+    public Map<String, Object> getUserInfo(HttpServletRequest request) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 从JWT令牌中获取用户名
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) {
+            result.put("success", false);
+            result.put("message", "未授权访问");
+            return result;
+        }
+        
+        token = token.substring(7);
+        String username = jwtUtils.getUsernameFromToken(token);
+        
+        // 根据用户名查询用户
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+        
+        // 获取用户角色
+        String roleName = userService.getRoleNameByUserId(user.getId());
+        
+        // 获取部门名称
+        String departmentName = "";
+        if (user.getDepartmentId() != null) {
+            Department department = departmentMapper.selectById(user.getDepartmentId());
+            if (department != null) {
+                departmentName = department.getName();
+            }
+        }
+        
+        // 构建返回数据
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("name", user.getName());
+        userInfo.put("role", roleName);
+        userInfo.put("department", departmentName);
+        userInfo.put("departmentId", user.getDepartmentId());
+        userInfo.put("restaurantId", user.getRestaurantId());
+        
+        result.put("success", true);
+        result.put("data", userInfo);
         
         return result;
     }
