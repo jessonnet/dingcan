@@ -151,7 +151,12 @@ const handleAddSubmit = async () => {
   
   try {
     await addDepartmentFormRef.value.validate()
-    const response = await axios.post('/api/admin/department/add', addDepartmentForm.value)
+    const formData = {
+      name: addDepartmentForm.value.name,
+      description: addDepartmentForm.value.description,
+      status: addDepartmentForm.value.status ? 1 : 0
+    }
+    const response = await axios.post('/api/admin/department/add', formData)
     if (response.success) {
       ElMessage.success('添加部门成功')
       addDepartmentDialogVisible.value = false
@@ -186,7 +191,13 @@ const handleEditSubmit = async () => {
   
   try {
     await editDepartmentFormRef.value.validate()
-    const response = await axios.put('/api/admin/department/update', editDepartmentForm.value)
+    const formData = {
+      id: editDepartmentForm.value.id,
+      name: editDepartmentForm.value.name,
+      description: editDepartmentForm.value.description,
+      status: editDepartmentForm.value.status ? 1 : 0
+    }
+    const response = await axios.put('/api/admin/department/update', formData)
     if (response.success) {
       ElMessage.success('修改部门成功')
       editDepartmentDialogVisible.value = false
