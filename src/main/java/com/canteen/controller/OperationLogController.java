@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin/operation-log")
+@RequestMapping("/api/admin/operation-log")
 public class OperationLogController {
 
     @Autowired

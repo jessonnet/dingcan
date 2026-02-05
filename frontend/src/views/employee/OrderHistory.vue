@@ -83,7 +83,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 
 const aggregatedOrders = ref([])
@@ -158,6 +158,11 @@ const handleCurrentChange = (current) => {
 
 const handleCancel = async (orderId) => {
   try {
+    await ElMessageBox.confirm('确定要取消该订单吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     const response = await axios.delete(`/api/order/delete/${orderId}`)
     
     if (response.success) {
@@ -167,7 +172,11 @@ const handleCancel = async (orderId) => {
       ElMessage.error(response.message || '取消订餐失败')
     }
   } catch (error) {
-    ElMessage.error('取消订餐失败，请检查网络连接')
+    if (error !== 'cancel') {
+      console.error('取消订餐失败:', error)
+      const errorMessage = error.message || error.response?.data?.message || '取消订餐失败，请检查网络连接'
+      ElMessage.error(errorMessage)
+    }
   }
 }
 

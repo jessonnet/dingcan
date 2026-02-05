@@ -25,7 +25,7 @@ import java.util.Map;
  * 订单控制器
  */
 @RestController
-@RequestMapping("/order")
+@RequestMapping("/api/order")
 public class OrderController {
 
     @Autowired

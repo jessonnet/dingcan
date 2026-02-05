@@ -66,6 +66,11 @@ const getMealTypeTagType = (mealTypeName) => {
 
 const loadOrderStatus = async () => {
   try {
+    if (!orderDate.value) {
+      ElMessage.warning('请选择日期')
+      return
+    }
+    
     const response = await axios.get('/api/chef/order-status', {
       params: {
         orderDate: orderDate.value
@@ -177,12 +182,21 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .meal-type-summary {
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
+    padding: 12px;
   }
 
   .meal-type-summary-item {
+    flex: 0 0 calc(50% - 4px);
+    max-width: calc(50% - 4px);
+  }
+
+  .meal-type-summary-item :deep(.el-tag) {
     width: 100%;
+    justify-content: center;
+    font-size: 13px;
+    padding: 8px 12px;
   }
 
   .order-names-container {

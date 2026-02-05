@@ -14,7 +14,7 @@ import java.util.Map;
  * 部门控制器
  */
 @RestController
-@RequestMapping("/admin/department")
+@RequestMapping("/api/admin/department")
 public class DepartmentController {
 
     @Autowired

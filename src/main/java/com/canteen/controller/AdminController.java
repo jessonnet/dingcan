@@ -26,7 +26,7 @@ import java.util.Map;
  * 管理员控制器
  */
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/admin")
 public class AdminController {
 
     @Autowired

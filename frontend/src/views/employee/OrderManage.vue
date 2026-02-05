@@ -2,26 +2,21 @@
   <div class="order-manage-container">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2 class="page-title">
-        <el-icon><Calendar /></el-icon>
-        订单管理
-      </h2>
-      <div class="header-actions">
-        <el-radio-group v-model="viewMode" size="small">
-          <el-radio-button label="calendar">
-            <el-icon><Calendar /></el-icon>
-            <span class="btn-text">日历</span>
-          </el-radio-button>
-          <el-radio-button label="list">
-            <el-icon><List /></el-icon>
-            <span class="btn-text">列表</span>
-          </el-radio-button>
-        </el-radio-group>
-      </div>
+      <h2 class="page-title">在线订餐</h2>
+      <el-radio-group v-model="viewMode" size="small" class="view-toggle">
+        <el-radio-button label="calendar">
+          <el-icon><Calendar /></el-icon>
+          <span class="btn-text">日历视图</span>
+        </el-radio-button>
+        <el-radio-button label="list">
+          <el-icon><List /></el-icon>
+          <span class="btn-text">列表视图</span>
+        </el-radio-button>
+      </el-radio-group>
     </div>
 
     <!-- 步骤1: 选择食堂 -->
-    <el-card class="meal-type-card" shadow="never" v-loading="restaurantsLoading">
+    <el-card class="meal-type-card restaurant-card" shadow="never" v-loading="restaurantsLoading">
       <el-form :model="orderForm" :rules="rules" ref="orderFormRef" label-width="80px">
         <el-form-item label="食堂" prop="restaurantId">
           <el-select v-model="selectedRestaurantId" placeholder="选择食堂" style="width: 100%" :disabled="loadingRestaurants">
@@ -81,10 +76,6 @@
           </div>
           <div class="legend">
             <span class="legend-item">
-              <span class="legend-dot ordered-current"></span>
-              <span class="legend-text">已选</span>
-            </span>
-            <span class="legend-item">
               <span class="legend-dot ordered"></span>
               <span class="legend-text">已订餐</span>
             </span>
@@ -118,7 +109,6 @@
                 'other-month': !day.isCurrentMonth,
                 'today': day.isToday,
                 'ordered': day.hasOrder,
-                'ordered-current': day.hasOrder && day.hasCurrentMealTypeOrder,
                 'can-order': day.canOrder && selectedMealTypeId && !day.hasOrder,
                 'locked': day.isLocked,
                 'selected': selectedDate === day.dateStr
@@ -270,7 +260,7 @@
     <el-dialog
       v-model="createOrderVisible"
       title="确认订餐"
-      width="380px"
+      width="340px"
       :close-on-click-modal="false"
       destroy-on-close
       class="order-dialog"
@@ -297,7 +287,7 @@
         </div>
       </div>
       <template #footer>
-        <el-button type="primary" @click="confirmCreateOrder" :loading="submitting" size="large" class="full-width-btn">
+        <el-button type="primary" @click="confirmCreateOrder" :loading="submitting" size="default" class="full-width-btn">
           <el-icon><Check /></el-icon>
           确认订餐
         </el-button>
@@ -308,7 +298,7 @@
     <el-dialog
       v-model="cancelOrderVisible"
       title="确认取消订单"
-      width="380px"
+      width="340px"
       :close-on-click-modal="false"
       destroy-on-close
       class="order-dialog"
@@ -350,7 +340,7 @@
         />
       </div>
       <template #footer>
-        <el-button type="danger" @click="confirmCancelOrder" :loading="submitting" size="large" class="full-width-btn">
+        <el-button type="danger" @click="confirmCancelOrder" :loading="submitting" size="default" class="full-width-btn">
           <el-icon><Delete /></el-icon>
           取消订餐
         </el-button>
@@ -418,7 +408,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { 
@@ -1149,24 +1139,35 @@ watch(viewMode, (newMode) => {
   align-items: center;
   margin-bottom: 15px;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .page-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   font-size: 20px;
   color: #303133;
   flex-shrink: 0;
+  min-width: fit-content;
+  white-space: nowrap;
 }
 
-.header-actions {
+.view-toggle {
+  flex-shrink: 0;
+}
+
+.view-toggle :deep(.el-radio-button) {
+  padding: 5px 8px;
+}
+
+.view-toggle :deep(.el-radio-button__inner) {
+  padding: 5px 10px;
+  font-size: 13px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 3px;
 }
 
 .btn-text {
@@ -1176,49 +1177,41 @@ watch(viewMode, (newMode) => {
 @media (max-width: 768px) {
   .page-header {
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   .page-title {
-    font-size: 18px;
-    gap: 6px;
+    font-size: 17px;
+    gap: 4px;
   }
 
-  .header-actions {
-    gap: 6px;
+  .view-toggle :deep(.el-radio-button) {
+    padding: 3px 6px;
   }
 
-  .page-header :deep(.el-radio-button) {
-    padding: 8px 12px;
-  }
-
-  .page-header :deep(.el-radio-button__inner) {
-    padding: 5px 10px;
-    font-size: 13px;
+  .view-toggle :deep(.el-radio-button__inner) {
+    padding: 3px 6px;
+    font-size: 11px;
   }
 }
 
 @media (max-width: 480px) {
   .page-header {
-    gap: 5px;
+    gap: 4px;
   }
 
   .page-title {
-    font-size: 16px;
-    gap: 4px;
+    font-size: 15px;
+    gap: 3px;
   }
 
-  .page-title .el-icon {
-    font-size: 18px;
+  .view-toggle :deep(.el-radio-button) {
+    padding: 2px 5px;
   }
 
-  .header-actions {
-    gap: 4px;
-  }
-
-  .page-header :deep(.el-radio-button__inner) {
-    padding: 4px 8px;
-    font-size: 12px;
+  .view-toggle :deep(.el-radio-button__inner) {
+    padding: 2px 5px;
+    font-size: 10px;
   }
 }
 
@@ -1230,7 +1223,7 @@ watch(viewMode, (newMode) => {
 
 /* 统计卡片 */
 .stats-row {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .stat-card {
@@ -1286,9 +1279,41 @@ watch(viewMode, (newMode) => {
 
 /* 餐食类型选择 */
 .meal-type-card {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
+}
+
+.restaurant-card {
+  margin-bottom: 12px;
+}
+
+.restaurant-card :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+.restaurant-card :deep(.el-form-item__label) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.restaurant-card :deep(.el-select) {
+  height: 36px;
+}
+
+@media (max-width: 768px) {
+  .restaurant-card :deep(.el-form-item) {
+    margin-bottom: 10px;
+  }
+
+  .restaurant-card :deep(.el-form-item__label) {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .restaurant-card :deep(.el-select) {
+    height: 32px;
+  }
 }
 
 .meal-type-card.has-selection {
@@ -1323,23 +1348,24 @@ watch(viewMode, (newMode) => {
 
 @media (max-width: 768px) {
   .meal-type-list {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 }
 
 .meal-type-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   border: 2px solid #e4e7ed;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   background-color: white;
   position: relative;
   overflow: hidden;
+  min-height: 60px;
 }
 
 .meal-type-item::before {
@@ -1381,41 +1407,45 @@ watch(viewMode, (newMode) => {
 }
 
 .meal-type-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   color: white;
   flex-shrink: 0;
 }
 
 .meal-type-info {
   flex: 1;
+  min-width: 0;
 }
 
 .meal-type-name {
   font-weight: bold;
-  font-size: 14px;
+  font-size: 13px;
   color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .meal-type-price {
-  font-size: 13px;
+  font-size: 12px;
   color: #f56c6c;
   font-weight: bold;
 }
 
 .check-icon {
-  font-size: 24px;
+  font-size: 20px;
   color: #67c23a;
 }
 
 /* 日历样式 */
 .calendar-card {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .calendar-header {
@@ -1484,11 +1514,6 @@ watch(viewMode, (newMode) => {
   border: 2px solid transparent;
 }
 
-.legend-dot.ordered-current { 
-  background-color: #52c41a; 
-  border-color: #52c41a;
-}
-
 .legend-dot.ordered { 
   background-color: #67c23a; 
   border-color: #67c23a;
@@ -1546,8 +1571,8 @@ watch(viewMode, (newMode) => {
 
 .calendar-day {
   background-color: white;
-  min-height: 85px;
-  padding: 6px;
+  min-height: 75px;
+  padding: 5px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -1557,8 +1582,8 @@ watch(viewMode, (newMode) => {
 
 @media (max-width: 768px) {
   .calendar-day {
-    min-height: 60px;
-    padding: 4px;
+    min-height: 55px;
+    padding: 3px;
   }
 }
 
@@ -1611,48 +1636,6 @@ watch(viewMode, (newMode) => {
   background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
   border-left: 4px solid #67c23a;
   border: 2px solid #67c23a;
-}
-
-.calendar-day.ordered::after {
-  content: '已订';
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 10px;
-  color: white;
-  font-weight: bold;
-  background: #67c23a;
-  padding: 2px 6px;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
-}
-
-@media (max-width: 768px) {
-  .calendar-day.ordered::after {
-    font-size: 9px;
-    padding: 1px 4px;
-  }
-}
-
-/* 当前选中餐食类型的订单 - 更明显的视觉标识 */
-.calendar-day.ordered-current {
-  background: linear-gradient(135deg, #f0f9ff 0%, #d9f7be 100%);
-  border: 3px solid #52c41a;
-  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
-}
-
-.calendar-day.ordered-current::after {
-  background: #52c41a;
-  content: '已选';
-  font-size: 11px;
-  padding: 3px 8px;
-}
-
-@media (max-width: 768px) {
-  .calendar-day.ordered-current::after {
-    font-size: 9px;
-    padding: 1px 4px;
-  }
 }
 
 /* 可订餐日期样式 - 更明显的视觉标识 */
@@ -1941,42 +1924,51 @@ watch(viewMode, (newMode) => {
   text-align: center;
   font-weight: bold;
   font-size: 18px;
+  padding: 15px 20px 10px;
+}
+
+.order-dialog :deep(.el-dialog__body) {
+  padding: 15px 20px;
+}
+
+.order-dialog :deep(.el-dialog__footer) {
+  padding: 10px 20px 15px;
 }
 
 .confirm-order-content,
 .cancel-order-content {
-  padding: 10px 0;
+  padding: 5px 0;
 }
 
 .confirm-icon {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .confirm-icon.success {
   color: #67c23a;
-  font-size: 56px;
+  font-size: 48px;
 }
 
 .confirm-icon.warning {
   color: #e6a23c;
-  font-size: 56px;
+  font-size: 48px;
 }
 
 .confirm-info {
   background-color: #f5f7fa;
-  padding: 15px;
+  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .confirm-date,
 .confirm-meal {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-size: 15px;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
   color: #606266;
 }
 
@@ -1988,42 +1980,42 @@ watch(viewMode, (newMode) => {
   margin-left: auto;
   color: #f56c6c;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .confirm-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
-  padding: 0 10px;
+  padding: 0 5px;
 }
 
 .total-price {
   color: #f56c6c;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .cancel-text {
   text-align: center;
-  font-size: 15px;
+  font-size: 14px;
   color: #606266;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .cancel-detail {
   background-color: #f5f7fa;
-  padding: 15px;
+  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .cancel-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .cancel-item:last-child {
@@ -2034,21 +2026,27 @@ watch(viewMode, (newMode) => {
   color: #909399;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  font-size: 13px;
 }
 
 .cancel-item .value {
   color: #303133;
   font-weight: bold;
+  font-size: 14px;
 }
 
 .cancel-item .value.price {
   color: #f56c6c;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .cancel-warning {
-  margin-top: 10px;
+  margin-top: 8px;
+}
+
+.full-width-btn {
+  width: 100%;
 }
 
 /* 响应式设计 */
@@ -2058,8 +2056,8 @@ watch(viewMode, (newMode) => {
   }
   
   .page-header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
   }
   
   .page-title {
@@ -2068,6 +2066,89 @@ watch(viewMode, (newMode) => {
   
   .btn-text {
     display: none;
+  }
+  
+  .order-dialog :deep(.el-dialog) {
+    width: 90% !important;
+    max-width: 340px;
+  }
+  
+  .order-dialog :deep(.el-dialog__header) {
+    padding: 12px 15px 8px;
+    font-size: 16px;
+  }
+  
+  .order-dialog :deep(.el-dialog__body) {
+    padding: 12px 15px;
+  }
+  
+  .order-dialog :deep(.el-dialog__footer) {
+    padding: 8px 15px 12px;
+  }
+  
+  .confirm-icon {
+    margin-bottom: 12px;
+  }
+  
+  .confirm-icon.success,
+  .confirm-icon.warning {
+    font-size: 40px;
+  }
+  
+  .confirm-info {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .confirm-date,
+  .confirm-meal {
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  
+  .meal-price {
+    font-size: 14px;
+  }
+  
+  .confirm-total {
+    font-size: 14px;
+    padding: 0 3px;
+  }
+  
+  .total-price {
+    font-size: 18px;
+  }
+  
+  .cancel-text {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  
+  .cancel-detail {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .cancel-item {
+    margin-bottom: 6px;
+  }
+  
+  .cancel-item .label {
+    gap: 4px;
+    font-size: 12px;
+  }
+  
+  .cancel-item .value {
+    font-size: 13px;
+  }
+  
+  .cancel-item .value.price {
+    font-size: 14px;
+  }
+  
+  .cancel-warning {
+    margin-top: 6px;
   }
   
   .card-header {
@@ -2081,12 +2162,27 @@ watch(viewMode, (newMode) => {
   }
   
   .meal-type-item {
-    padding: 10px;
+    padding: 8px;
+    gap: 6px;
+    min-height: 55px;
   }
   
   .meal-type-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    border-radius: 5px;
+  }
+  
+  .meal-type-name {
+    font-size: 12px;
+  }
+  
+  .meal-type-price {
+    font-size: 11px;
+  }
+  
+  .check-icon {
     font-size: 18px;
   }
   
@@ -2101,8 +2197,8 @@ watch(viewMode, (newMode) => {
   }
   
   .calendar-day {
-    min-height: 65px;
-    padding: 4px;
+    min-height: 55px;
+    padding: 3px;
   }
   
   .day-number {
@@ -2112,11 +2208,6 @@ watch(viewMode, (newMode) => {
   .order-badge {
     font-size: 9px;
     padding: 2px 4px;
-  }
-  
-  .calendar-day.ordered::after {
-    font-size: 8px;
-    padding: 1px 4px;
   }
   
   .weekday {
@@ -2141,8 +2232,117 @@ watch(viewMode, (newMode) => {
 }
 
 @media (max-width: 480px) {
+  .order-dialog :deep(.el-dialog) {
+    width: 95% !important;
+    max-width: 320px;
+  }
+  
+  .order-dialog :deep(.el-dialog__header) {
+    padding: 10px 12px 6px;
+    font-size: 15px;
+  }
+  
+  .order-dialog :deep(.el-dialog__body) {
+    padding: 10px 12px;
+  }
+  
+  .order-dialog :deep(.el-dialog__footer) {
+    padding: 6px 12px 10px;
+  }
+  
+  .confirm-icon {
+    margin-bottom: 10px;
+  }
+  
+  .confirm-icon.success,
+  .confirm-icon.warning {
+    font-size: 36px;
+  }
+  
+  .confirm-info {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .confirm-date,
+  .confirm-meal {
+    gap: 5px;
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+  
+  .meal-price {
+    font-size: 13px;
+  }
+  
+  .confirm-total {
+    font-size: 13px;
+    padding: 0 2px;
+  }
+  
+  .total-price {
+    font-size: 16px;
+  }
+  
+  .cancel-text {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .cancel-detail {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .cancel-item {
+    margin-bottom: 5px;
+  }
+  
+  .cancel-item .label {
+    gap: 3px;
+    font-size: 11px;
+  }
+  
+  .cancel-item .value {
+    font-size: 12px;
+  }
+  
+  .cancel-item .value.price {
+    font-size: 13px;
+  }
+  
+  .cancel-warning {
+    margin-top: 5px;
+  }
+  
   .meal-type-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  
+  .meal-type-item {
+    padding: 6px;
+    gap: 5px;
+    min-height: 50px;
+  }
+  
+  .meal-type-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    border-radius: 4px;
+  }
+  
+  .meal-type-name {
+    font-size: 11px;
+  }
+  
+  .meal-type-price {
+    font-size: 10px;
+  }
+  
+  .check-icon {
+    font-size: 16px;
   }
   
   .calendar-day {

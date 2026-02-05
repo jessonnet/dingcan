@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * 厨师控制器
  */
 @RestController
-@RequestMapping("/chef")
+@RequestMapping("/api/chef")
 public class ChefController {
 
     @Autowired
@@ -44,10 +44,17 @@ public class ChefController {
      * @return 结果
      */
     @GetMapping("/order-status")
-    public Map<String, Object> getOrderStatus(@RequestParam String orderDate) {
+    public Map<String, Object> getOrderStatus(@RequestParam(required = false) String orderDate) {
         Map<String, Object> result = new HashMap<>();
 
         try {
+            // 检查日期参数
+            if (orderDate == null || orderDate.trim().isEmpty()) {
+                result.put("success", false);
+                result.put("message", "请选择日期");
+                return result;
+            }
+
             // 获取当前用户
             String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = userService.findByUsername(username);
@@ -116,10 +123,22 @@ public class ChefController {
      * @return 结果
      */
     @GetMapping("/statistics")
-    public Map<String, Object> getStatistics(@RequestParam String startDate, @RequestParam String endDate) {
+    public Map<String, Object> getStatistics(@RequestParam(required = false) String startDate, @RequestParam(required = false) String endDate) {
         Map<String, Object> result = new HashMap<>();
 
         try {
+            // 检查日期参数
+            if (startDate == null || startDate.trim().isEmpty()) {
+                result.put("success", false);
+                result.put("message", "请选择开始日期");
+                return result;
+            }
+            if (endDate == null || endDate.trim().isEmpty()) {
+                result.put("success", false);
+                result.put("message", "请选择结束日期");
+                return result;
+            }
+
             // 获取当前用户
             String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = userService.findByUsername(username);
@@ -179,8 +198,22 @@ public class ChefController {
      * @throws IOException 异常
      */
     @GetMapping("/export")
-    public void exportExcel(@RequestParam String startDate, @RequestParam String endDate, HttpServletResponse response) throws IOException {
+    public void exportExcel(@RequestParam(required = false) String startDate, @RequestParam(required = false) String endDate, HttpServletResponse response) throws IOException {
         try {
+            // 检查日期参数
+            if (startDate == null || startDate.trim().isEmpty()) {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"success\": false, \"message\": \"请选择开始日期\"}");
+                return;
+            }
+            if (endDate == null || endDate.trim().isEmpty()) {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"success\": false, \"message\": \"请选择结束日期\"}");
+                return;
+            }
+
             // 解析日期
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);

@@ -44,6 +44,14 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull jakarta.servlet.FilterChain filterChain) throws ServletException, IOException {
         try {
+            String requestURI = request.getRequestURI();
+            if (requestURI.startsWith("/api/auth/login") || requestURI.startsWith("/auth/login") || 
+                requestURI.startsWith("/api/auth/test-password") || requestURI.startsWith("/auth/test-password") ||
+                requestURI.startsWith("/init/") || requestURI.startsWith("/db/") || requestURI.startsWith("/test/")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String header = request.getHeader(jwtUtils.getHeader());
             if (header == null || !header.startsWith("Bearer ")) {
                 filterChain.doFilter(request, response);
@@ -68,7 +76,6 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
         } catch (Exception e) {
-            // 令牌无效，继续处理请求
             filterChain.doFilter(request, response);
         }
     }

@@ -387,7 +387,8 @@ const handleDelete = (row) => {
       }
     } catch (error) {
       console.error('删除订单失败:', error)
-      ElMessage.error('删除失败')
+      const errorMessage = error.message || error.response?.data?.message || '删除失败，请检查网络连接'
+      ElMessage.error(errorMessage)
     }
   }).catch(() => {
     // 取消删除

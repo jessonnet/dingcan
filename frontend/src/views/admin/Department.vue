@@ -228,7 +228,9 @@ const handleDelete = async (id) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除部门失败，请检查网络连接')
+      console.error('删除部门失败:', error)
+      const errorMessage = error.message || error.response?.data?.message || '删除部门失败，请检查网络连接'
+      ElMessage.error(errorMessage)
     }
   }
 }

@@ -95,11 +95,76 @@ axios.interceptors.response.use(
   error => {
     console.error('响应错误:', error.config ? error.config.url : '未知URL', error.message)
     console.error('错误详情:', error)
+    
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       router.push('/login')
+      return Promise.reject(error)
     }
+    
+    if (error.response && error.response.data) {
+      const errorData = error.response.data
+      
+      let errorMessage = '操作失败'
+      
+      if (typeof errorData === 'string') {
+        try {
+          const parsedData = JSON.parse(errorData)
+          errorMessage = parsedData.message || parsedData.msg || errorMessage
+        } catch (e) {
+          errorMessage = errorData
+        }
+      } else if (typeof errorData === 'object') {
+        errorMessage = errorData.message || errorData.msg || errorData.error || errorMessage
+      }
+      
+      console.error('错误消息:', errorMessage)
+      
+      let friendlyMessage = errorMessage
+      
+      if (typeof errorMessage === 'string') {
+        const lowerMessage = errorMessage.toLowerCase()
+        
+        if (lowerMessage.includes('foreign key constraint fails') || 
+            lowerMessage.includes('外键约束') || 
+            lowerMessage.includes('sqlintegrityconstraintviolationexception')) {
+          
+          if (lowerMessage.includes('meal_type') || lowerMessage.includes('餐食类型')) {
+            friendlyMessage = '删除失败：该餐食类型已被订单使用，无法删除'
+          } else if (lowerMessage.includes('restaurant') || lowerMessage.includes('餐厅')) {
+            friendlyMessage = '删除失败：该餐厅已被订单使用，无法删除'
+          } else if (lowerMessage.includes('department') || lowerMessage.includes('部门')) {
+            friendlyMessage = '删除失败：该部门下还有员工，无法删除'
+          } else if (lowerMessage.includes('user') || lowerMessage.includes('员工') || lowerMessage.includes('用户')) {
+            friendlyMessage = '删除失败：该用户存在订单记录，无法删除'
+          } else if (lowerMessage.includes('role') || lowerMessage.includes('角色')) {
+            friendlyMessage = '删除失败：该角色已被分配给用户，无法删除'
+          } else {
+            friendlyMessage = '删除失败：该数据存在关联记录，无法删除'
+          }
+        } else if (lowerMessage.includes('duplicate entry') || lowerMessage.includes('重复')) {
+          friendlyMessage = '操作失败：数据已存在，请勿重复添加'
+        } else if (lowerMessage.includes('data too long') || lowerMessage.includes('数据过长')) {
+          friendlyMessage = '操作失败：输入内容过长，请缩短后重试'
+        } else if (lowerMessage.includes('column') && lowerMessage.includes('cannot be null')) {
+          friendlyMessage = '操作失败：必填字段不能为空'
+        } else if (lowerMessage.includes('connection') || lowerMessage.includes('连接')) {
+          friendlyMessage = '操作失败：网络连接异常，请检查网络后重试'
+        } else if (lowerMessage.includes('timeout') || lowerMessage.includes('超时')) {
+          friendlyMessage = '操作失败：请求超时，请稍后重试'
+        }
+      }
+      
+      console.error('友好提示:', friendlyMessage)
+      
+      const enhancedError = new Error(friendlyMessage)
+      enhancedError.response = error.response
+      enhancedError.config = error.config
+      
+      return Promise.reject(enhancedError)
+    }
+    
     return Promise.reject(error)
   }
 )

@@ -203,7 +203,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const employees = ref([])
 const roles = ref([])
@@ -452,6 +452,11 @@ const handleEditSubmit = async () => {
 
 const handleDelete = async (id) => {
   try {
+    await ElMessageBox.confirm('确定要删除该员工吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     const response = await axios.delete(`/api/admin/user/delete/${id}`)
     if (response.success) {
       ElMessage.success(response.message)
@@ -460,7 +465,11 @@ const handleDelete = async (id) => {
       ElMessage.error(response.message)
     }
   } catch (error) {
-    ElMessage.error('删除失败，请检查网络连接')
+    if (error !== 'cancel') {
+      console.error('删除员工失败:', error)
+      const errorMessage = error.message || error.response?.data?.message || '删除失败，请检查网络连接'
+      ElMessage.error(errorMessage)
+    }
   }
 }
 

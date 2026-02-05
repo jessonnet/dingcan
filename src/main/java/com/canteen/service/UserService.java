@@ -31,4 +31,9 @@ public interface UserService extends IService<User>, UserDetailsService {
      */
     List<User> getAllUsers();
 
+    /**
+     * 查询所有用户
+     * @return 用户列表
+     */
+    List<User> findAll();
 }

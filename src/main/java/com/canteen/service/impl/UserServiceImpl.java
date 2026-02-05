@@ -56,6 +56,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
+     * 查询所有用户
+     * @return 用户列表
+     */
+    @Override
+    public List<User> findAll() {
+        return userMapper.selectList(null);
+    }
+
+    /**
      * 根据用户名加载用户
      * @param username 用户名
      * @return UserDetails
