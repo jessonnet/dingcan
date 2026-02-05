@@ -6,8 +6,9 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import axios from 'axios'
 
-// 配置axios
-axios.defaults.baseURL = 'http://localhost:8080'
+// 配置axios - 使用相对路径，由Nginx代理到后端
+// 开发环境通过vite.config.js的proxy配置代理
+// 生产环境通过Nginx的location /api配置代理
 axios.defaults.timeout = 10000
 
 // 配置请求转换器

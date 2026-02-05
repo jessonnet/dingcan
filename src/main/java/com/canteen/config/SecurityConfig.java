@@ -65,20 +65,24 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/logout", "/auth/reset-passwords", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/api/health").permitAll()
-                        .requestMatchers("/auth/change-password").authenticated()
+                        .requestMatchers("/auth/**", "/api/auth/**", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/api/health", "/api/admin/reset-all-passwords", "/api/admin/reset-password").permitAll()
                         .anyRequest().authenticated()
                 );
 
         JwtAuthorizationFilter jwtAuthorizationFilter = new JwtAuthorizationFilter(jwtUtils, userService);
 
-        http.addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.exceptionHandling(exception -> exception
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json;charset=utf-8");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" + authException.getMessage() + "\"}");
+                })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     response.setContentType("application/json;charset=utf-8");
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    response.getWriter().write("{\"error\":\"Access Denied\"}");
+                    response.getWriter().write("{\"error\":\"Access Denied\",\"message\":\"" + accessDeniedException.getMessage() + "\"}");
                 })
         );
 

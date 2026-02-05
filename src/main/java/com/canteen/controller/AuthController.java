@@ -22,7 +22,7 @@ import java.util.Map;
  * 认证控制器
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
@@ -263,31 +263,81 @@ public class AuthController {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // 重置admin用户密码
-            User admin = userService.findByUsername("admin");
-            if (admin != null) {
-                String newPassword = passwordEncoder.encode("123456");
-                admin.setPassword(newPassword);
-                userService.updateById(admin);
-                System.out.println("重置admin密码成功: " + newPassword);
-            }
+            String[] usernames = {"admin", "employee1", "employee2", "chef1"};
+            int resetCount = 0;
             
-            // 重置wang用户密码
-            User wang = userService.findByUsername("wang");
-            if (wang != null) {
-                String newPassword = passwordEncoder.encode("123456");
-                wang.setPassword(newPassword);
-                userService.updateById(wang);
-                System.out.println("重置wang密码成功: " + newPassword);
+            for (String username : usernames) {
+                User user = userService.findByUsername(username);
+                if (user != null) {
+                    String newPassword = passwordEncoder.encode("123456");
+                    user.setPassword(newPassword);
+                    userService.updateById(user);
+                    System.out.println("重置" + username + "密码成功: " + newPassword);
+                    resetCount++;
+                }
             }
             
             result.put("success", true);
-            result.put("message", "密码重置成功，所有用户密码已重置为123456");
+            result.put("message", "密码重置成功，已重置" + resetCount + "个用户密码为123456");
         } catch (Exception e) {
             System.out.println("密码重置失败: " + e.getMessage());
             e.printStackTrace();
             result.put("success", false);
             result.put("message", "密码重置失败: " + e.getMessage());
+        }
+        
+        return result;
+    }
+
+    /**
+     * 测试密码哈希（仅用于调试）
+     * @param testData 测试数据
+     * @return 结果
+     */
+    @PostMapping("/test-password")
+    public Map<String, Object> testPassword(@RequestBody Map<String, String> testData) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String username = testData.get("username");
+            String password = testData.get("password");
+            
+            if (username == null || password == null) {
+                result.put("success", false);
+                result.put("message", "请提供用户名和密码");
+                return result;
+            }
+            
+            User user = userService.findByUsername(username);
+            if (user == null) {
+                result.put("success", false);
+                result.put("message", "用户不存在");
+                return result;
+            }
+            
+            String dbPassword = user.getPassword();
+            String encodedPassword = passwordEncoder.encode(password);
+            boolean matches = passwordEncoder.matches(password, dbPassword);
+            
+            result.put("success", true);
+            result.put("username", username);
+            result.put("inputPassword", password);
+            result.put("dbPassword", dbPassword);
+            result.put("encodedPassword", encodedPassword);
+            result.put("passwordMatches", matches);
+            result.put("message", matches ? "密码匹配成功" : "密码不匹配");
+            
+            System.out.println("密码测试结果:");
+            System.out.println("用户名: " + username);
+            System.out.println("输入密码: " + password);
+            System.out.println("数据库密码: " + dbPassword);
+            System.out.println("新编码密码: " + encodedPassword);
+            System.out.println("匹配结果: " + matches);
+            
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "测试失败: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return result;
