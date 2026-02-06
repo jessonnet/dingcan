@@ -2,7 +2,7 @@
   <div id="app">
     <router-view v-if="!$route.meta.requiresAuth || isLoggedIn" />
     <div v-else>
-      <el-message type="error" message="请先登录" />
+      <el-alert type="error" title="请先登录" :closable="false" />
     </div>
   </div>
 </template>

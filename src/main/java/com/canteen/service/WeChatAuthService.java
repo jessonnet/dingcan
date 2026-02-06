@@ -7,6 +7,7 @@ import com.canteen.entity.WeChatUser;
 import com.canteen.mapper.WeChatUserMapper;
 import com.canteen.mapper.UserMapper;
 import com.canteen.entity.User;
+import com.canteen.utils.JwtUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ import java.util.Map;
 @Service
 public class WeChatAuthService {
     
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WeChatAuthService.class);
+    
     @Autowired
     private WeChatConfig weChatConfig;
     
@@ -32,7 +35,7 @@ public class WeChatAuthService {
     private UserMapper userMapper;
     
     @Autowired
-    private JwtService jwtService;
+    private JwtUtils jwtUtils;
     
     @Autowired
     private SystemConfigService systemConfigService;
@@ -142,7 +145,7 @@ public class WeChatAuthService {
                     
                     log.info("微信登录成功，用户: {}", user.getUsername());
                     
-                    String token = jwtService.generateToken(user.getUsername());
+                    String token = jwtUtils.generateToken(user.getUsername());
                     
                     Map<String, Object> result = new HashMap<>();
                     result.put("success", true);
@@ -209,7 +212,7 @@ public class WeChatAuthService {
         try {
             log.info("绑定微信账号，openid: {}, username: {}", openid, username);
             
-            User user = userMapper.findByUsername(username);
+            User user = userMapper.selectByUsername(username);
             
             if (user == null) {
                 throw new RuntimeException("用户不存在");
@@ -233,7 +236,7 @@ public class WeChatAuthService {
             
             log.info("微信账号绑定成功，openid: {}, userId: {}", openid, user.getId());
             
-            String token = jwtService.generateToken(user.getUsername());
+            String token = jwtUtils.generateToken(user.getUsername());
             
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);

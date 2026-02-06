@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/api/auth/**", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/api/health", "/api/admin/reset-all-passwords", "/api/admin/reset-password").permitAll()
+                        .requestMatchers("/auth/**", "/api/auth/**", "/init/**", "/db/**", "/test/**", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/api/health", "/api/admin/reset-all-passwords", "/api/admin/reset-password", "/api/system/config/wechat", "/api/wechat/check-browser").permitAll()
                         .anyRequest().authenticated()
                 );
 

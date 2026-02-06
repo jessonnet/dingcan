@@ -179,16 +179,10 @@ const loadWeChatConfig = async () => {
 
 const checkBrowser = async () => {
   try {
-    const response = await fetch('/api/wechat/check-browser', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    const data = await response.json()
-    if (data.success) {
-      isWeChat.value = data.isWeChat
-      isHarmonyOS.value = data.isHarmonyOS
+    const response = await axios.get('/api/wechat/check-browser')
+    if (response.success) {
+      isWeChat.value = response.isWeChat
+      isHarmonyOS.value = response.isHarmonyOS
       
       console.log('浏览器环境:', isWeChat.value, isHarmonyOS.value)
       console.log('微信登录配置:', wechatLoginEnabled.value, wechatLoginMode.value)
@@ -224,30 +218,14 @@ const handleLogin = async () => {
           console.log('开始发送登录请求')
           console.log('登录表单数据:', loginForm)
           
-          const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(loginForm)
-          })
+          const response = await axios.post('/api/auth/login', loginForm)
+          console.log('登录响应数据:', response)
           
-          console.log('fetch响应状态:', response.status)
-          
-          if (!response.ok) {
-            console.error('HTTP错误:', response.status, response.statusText)
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-          
-          const data = await response.json()
-          console.log('登录响应数据:', data)
-          
-          if (data && data.success) {
+          if (response && response.success) {
             console.log('响应成功，success为true')
             
-            const user = data.user
-            const token = data.token
+            const user = response.user
+            const token = response.token
             
             console.log('响应user:', user)
             console.log('响应user.role:', user.role)
@@ -287,8 +265,8 @@ const handleLogin = async () => {
             ElMessage.success('登录成功')
           } else {
             console.error('登录失败，success为false或响应格式错误')
-            console.error('响应数据:', data)
-            ElMessage.error(data?.message || '登录失败')
+            console.error('响应数据:', response)
+            ElMessage.error(response?.message || '登录失败')
           }
         } catch (error) {
           console.error('登录错误:', error)
@@ -313,17 +291,10 @@ const handleWeChatLogin = async () => {
   try {
     loading.value = true
     
-    const response = await fetch('/api/wechat/auth/url', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    const response = await axios.get('/api/wechat/auth/url')
     
-    const data = await response.json()
-    
-    if (data.success && data.authUrl) {
-      window.location.href = data.authUrl
+    if (response.success && response.authUrl) {
+      window.location.href = response.authUrl
     } else {
       ElMessage.error('获取微信授权链接失败')
     }
@@ -343,26 +314,18 @@ const handleWeChatCallback = async () => {
     loading.value = true
     
     try {
-      const response = await fetch('/api/wechat/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code, state })
-      })
+      const response = await axios.post('/api/wechat/login', { code, state })
       
-      const data = await response.json()
-      
-      if (data.success) {
-        if (data.needBind) {
+      if (response.success) {
+        if (response.needBind) {
           needBind.value = true
-          wechatInfo.openid = data.openid
-          wechatInfo.nickname = data.nickname
-          wechatInfo.avatar = data.avatar
+          wechatInfo.openid = response.openid
+          wechatInfo.nickname = response.nickname
+          wechatInfo.avatar = response.avatar
           ElMessage.info('首次登录，请绑定员工账号')
         } else {
-          const user = data.user
-          const token = data.token
+          const user = response.user
+          const token = response.token
           
           if (user.role) {
             user.role = user.role.toLowerCase()
@@ -389,7 +352,7 @@ const handleWeChatCallback = async () => {
           ElMessage.success('登录成功')
         }
       } else {
-        ElMessage.error(data?.message || '微信登录失败')
+        ElMessage.error(response?.message || '微信登录失败')
       }
     } catch (error) {
       console.error('微信登录回调处理失败:', error)
@@ -409,23 +372,15 @@ const handleBindUser = async () => {
         loading.value = true
         
         try {
-          const response = await fetch('/api/wechat/bind', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              openid: wechatInfo.openid,
-              username: bindForm.username,
-              password: bindForm.password
-            })
+          const response = await axios.post('/api/wechat/bind', {
+            openid: wechatInfo.openid,
+            username: bindForm.username,
+            password: bindForm.password
           })
           
-          const data = await response.json()
-          
-          if (data.success) {
-            const user = data.user
-            const token = data.token
+          if (response.success) {
+            const user = response.user
+            const token = response.token
             
             if (user.role) {
               user.role = user.role.toLowerCase()
@@ -451,7 +406,7 @@ const handleBindUser = async () => {
             router.push(redirectPath)
             ElMessage.success('绑定成功，已登录')
           } else {
-            ElMessage.error(data?.message || '绑定失败')
+            ElMessage.error(response?.message || '绑定失败')
           }
         } catch (error) {
           console.error('绑定失败:', error)

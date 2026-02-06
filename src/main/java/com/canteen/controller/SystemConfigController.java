@@ -2,11 +2,13 @@ package com.canteen.controller;
 
 import com.canteen.dto.SystemConfigResponseDTO;
 import com.canteen.dto.SystemConfigUpdateDTO;
+import com.canteen.entity.OperationLog;
 import com.canteen.entity.SystemConfig;
 import com.canteen.entity.User;
 import com.canteen.service.OperationLogService;
 import com.canteen.service.SystemConfigService;
-import com.canteen.util.JwtUtil;
+import com.canteen.service.UserService;
+import com.canteen.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,8 @@ import java.util.Map;
 @RequestMapping("/api/system/config")
 public class SystemConfigController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SystemConfigController.class);
+
     @Autowired
     private SystemConfigService systemConfigService;
 
@@ -32,14 +36,63 @@ public class SystemConfigController {
     private OperationLogService operationLogService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private JwtUtils jwtUtils;
+    
+    @Autowired
+    private UserService userService;
 
     /**
-     * 获取所有系统配置
+     * 获取微信登录配置（公开接口，无需认证）
+     */
+    @GetMapping("/wechat")
+    public Map<String, Object> getWeChatConfig() {
+        try {
+            Map<String, Object> config = new HashMap<>();
+            config.put("enabled", systemConfigService.isWeChatLoginEnabled());
+            config.put("mode", systemConfigService.getWeChatLoginMode());
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", config);
+            return result;
+            
+        } catch (Exception e) {
+            log.error("获取微信登录配置失败", e);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "获取微信登录配置失败: " + e.getMessage());
+            return result;
+        }
+    }
+
+    /**
+     * 获取所有系统配置（需要管理员权限）
      */
     @GetMapping("/list")
-    public Map<String, Object> getAllConfigs() {
+    public Map<String, Object> getAllConfigs(HttpServletRequest request) {
         try {
+            // 验证管理员权限
+            String token = request.getHeader("Authorization");
+            if (token == null || !token.startsWith("Bearer ")) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "未授权访问");
+                return result;
+            }
+            
+            token = token.substring(7);
+            String username = jwtUtils.getUsernameFromToken(token);
+            
+            // 获取用户信息验证权限
+            User user = userService.findByUsername(username);
+            
+            if (user == null || !"admin".equalsIgnoreCase(user.getUsername())) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "权限不足");
+                return result;
+            }
+            
             List<SystemConfig> configs = systemConfigService.list();
             List<SystemConfigResponseDTO> responseDTOs = new ArrayList<>();
             
@@ -69,30 +122,6 @@ public class SystemConfigController {
     }
 
     /**
-     * 获取微信登录配置
-     */
-    @GetMapping("/wechat")
-    public Map<String, Object> getWeChatConfig() {
-        try {
-            Map<String, Object> config = new HashMap<>();
-            config.put("enabled", systemConfigService.isWeChatLoginEnabled());
-            config.put("mode", systemConfigService.getWeChatLoginMode());
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("data", config);
-            return result;
-            
-        } catch (Exception e) {
-            log.error("获取微信登录配置失败", e);
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", false);
-            result.put("message", "获取微信登录配置失败: " + e.getMessage());
-            return result;
-        }
-    }
-
-    /**
      * 更新系统配置
      */
     @PostMapping("/update")
@@ -108,7 +137,7 @@ public class SystemConfigController {
             }
             
             token = token.substring(7);
-            String username = jwtUtil.getUsernameFromToken(token);
+            String username = jwtUtils.getUsernameFromToken(token);
             
             if (!isConfigEditable(updateDTO.getConfigKey())) {
                 Map<String, Object> result = new HashMap<>();
@@ -131,22 +160,22 @@ public class SystemConfigController {
             boolean success = systemConfigService.updateConfig(updateDTO.getConfigKey(), updateDTO.getConfigValue());
             
             if (success) {
-                operationLogService.logOperation(
-                    username,
-                    "UPDATE",
-                    "系统配置",
-                    updateDTO.getDescription() != null ? updateDTO.getDescription() : "更新系统配置",
-                    "POST",
-                    "/api/system/config/update",
-                    updateDTO.toString(),
-                    oldConfig.toString(),
-                    updateDTO.getConfigValue(),
-                    request.getRemoteAddr(),
-                    request.getHeader("User-Agent"),
-                    true,
-                    null,
-                    0L
-                );
+                try {
+                    User user = userService.findByUsername(username);
+                    OperationLog log = new OperationLog();
+                    log.setUserId(user != null ? user.getId() : null);
+                    log.setUsername(username);
+                    log.setOperationType("UPDATE");
+                    log.setModule("系统配置");
+                    log.setDescription(updateDTO.getDescription() != null ? updateDTO.getDescription() : "更新系统配置");
+                    log.setCreatedAt(java.time.LocalDateTime.now());
+                    log.setIpAddress(request.getRemoteAddr());
+                    log.setUserAgent(request.getHeader("User-Agent"));
+                    log.setStatus(1);
+                    operationLogService.save(log);
+                } catch (Exception e) {
+                    System.err.println("记录操作日志失败: " + e.getMessage());
+                }
                 
                 log.info("系统配置更新成功: {} = {}", updateDTO.getConfigKey(), updateDTO.getConfigValue());
                 
@@ -186,7 +215,17 @@ public class SystemConfigController {
             }
             
             token = token.substring(7);
-            String username = jwtUtil.getUsernameFromToken(token);
+            String username = jwtUtils.getUsernameFromToken(token);
+            
+            // 获取用户信息验证权限
+            User user = userService.findByUsername(username);
+            
+            if (user == null || !"admin".equalsIgnoreCase(user.getUsername())) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "权限不足");
+                return result;
+            }
             
             int successCount = 0;
             int failCount = 0;
@@ -211,22 +250,21 @@ public class SystemConfigController {
                 if (success) {
                     successCount++;
                     
-                    operationLogService.logOperation(
-                        username,
-                        "UPDATE",
-                        "系统配置",
-                        updateDTO.getDescription() != null ? updateDTO.getDescription() : "批量更新系统配置",
-                        "POST",
-                        "/api/system/config/batch-update",
-                        updateDTO.toString(),
-                        oldConfig.toString(),
-                        updateDTO.getConfigValue(),
-                        request.getRemoteAddr(),
-                        request.getHeader("User-Agent"),
-                        true,
-                        null,
-                        0L
-                    );
+                    try {
+                        OperationLog log = new OperationLog();
+                        log.setUserId(user.getId());
+                        log.setUsername(username);
+                        log.setOperationType("UPDATE");
+                        log.setModule("系统配置");
+                        log.setDescription(updateDTO.getDescription() != null ? updateDTO.getDescription() : "批量更新系统配置");
+                        log.setCreatedAt(java.time.LocalDateTime.now());
+                        log.setIpAddress(request.getRemoteAddr());
+                        log.setUserAgent(request.getHeader("User-Agent"));
+                        log.setStatus(1);
+                        operationLogService.save(log);
+                    } catch (Exception e) {
+                        System.err.println("记录操作日志失败: " + e.getMessage());
+                    }
                 } else {
                     failCount++;
                 }

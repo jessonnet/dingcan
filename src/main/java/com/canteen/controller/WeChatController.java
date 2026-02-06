@@ -5,7 +5,7 @@ import com.canteen.dto.LoginRequest;
 import com.canteen.dto.LoginResponse;
 import com.canteen.entity.User;
 import com.canteen.mapper.UserMapper;
-import com.canteen.service.JwtService;
+import com.canteen.utils.JwtUtils;
 import com.canteen.service.WeChatAuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +20,8 @@ import java.util.Map;
 @RequestMapping("/api/wechat")
 public class WeChatController {
     
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WeChatController.class);
+    
     @Autowired
     private WeChatConfig weChatConfig;
     
@@ -30,7 +32,7 @@ public class WeChatController {
     private UserMapper userMapper;
     
     @Autowired
-    private JwtService jwtService;
+    private JwtUtils jwtUtils;
     
     @GetMapping("/auth/url")
     public ResponseEntity<Map<String, Object>> getAuthUrl() {

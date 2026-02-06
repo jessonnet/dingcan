@@ -58,6 +58,7 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         SystemConfig systemConfig = systemConfigMapper.selectByConfigKey(configKey);
         if (systemConfig != null) {
             systemConfig.setConfigValue(configValue);
+            systemConfig.setUpdatedAt(java.time.LocalDateTime.now());
             return systemConfigMapper.updateById(systemConfig) > 0;
         }
         return false;

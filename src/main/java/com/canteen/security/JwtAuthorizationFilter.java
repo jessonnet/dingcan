@@ -47,7 +47,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             String requestURI = request.getRequestURI();
             if (requestURI.startsWith("/api/auth/login") || requestURI.startsWith("/auth/login") || 
                 requestURI.startsWith("/api/auth/test-password") || requestURI.startsWith("/auth/test-password") ||
-                requestURI.startsWith("/init/") || requestURI.startsWith("/db/") || requestURI.startsWith("/test/")) {
+                requestURI.startsWith("/init/") || requestURI.startsWith("/db/") || requestURI.startsWith("/test/") ||
+                requestURI.equals("/api/system/config/wechat") || requestURI.equals("/api/wechat/check-browser")) {
                 filterChain.doFilter(request, response);
                 return;
             }

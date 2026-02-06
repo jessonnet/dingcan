@@ -36,9 +36,23 @@ axios.interceptors.request.use(
     console.log('请求配置:', config)
     console.log('===== 请求拦截器结束 =====')
     
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // 公开接口列表，不需要token
+    const publicEndpoints = [
+      '/api/system/config/wechat',
+      '/api/wechat/check-browser',
+      '/api/auth/login',
+      '/api/auth/register'
+    ]
+    
+    // 检查是否是公开接口
+    const isPublicEndpoint = publicEndpoints.some(endpoint => config.url.includes(endpoint))
+    
+    // 只有非公开接口才添加token
+    if (!isPublicEndpoint) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     // 确保 Content-Type 是 application/json，并且不覆盖已有的Content-Type
     if (!config.headers['Content-Type']) {
@@ -96,10 +110,15 @@ axios.interceptors.response.use(
     console.error('响应错误:', error.config ? error.config.url : '未知URL', error.message)
     console.error('错误详情:', error)
     
+    // 只有在非登录页面时才处理401错误
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      router.push('/login')
+      // 检查当前是否在登录页面
+      const currentPath = router.currentRoute.value.path
+      if (currentPath !== '/login') {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        router.push('/login')
+      }
       return Promise.reject(error)
     }
     
