@@ -109,78 +109,71 @@ public class WeChatAuthService {
             
             WeChatUser weChatUser = weChatUserMapper.findByOpenid(openid);
             
-            User user;
-            
-            if (weChatUser != null) {
-                log.info("微信用户已存在，openid: {}", openid);
+            if (weChatUser != null && weChatUser.getUserId() != null) {
+                log.info("微信用户已绑定，openid: {}, userId: {}", openid, weChatUser.getUserId());
                 
-                if (weChatUser.getUserId() != null) {
-                    user = userMapper.findById(weChatUser.getUserId());
+                User user = userMapper.findById(weChatUser.getUserId());
+                
+                if (user != null) {
+                    weChatUser.setNickname(userInfo.getNickname());
+                    weChatUser.setAvatar(userInfo.getHeadimgurl());
+                    weChatUser.setGender(userInfo.getSex());
+                    weChatUser.setCountry(userInfo.getCountry());
+                    weChatUser.setProvince(userInfo.getProvince());
+                    weChatUser.setCity(userInfo.getCity());
+                    weChatUser.setLastLoginTime(LocalDateTime.now());
+                    weChatUserMapper.updateByOpenid(weChatUser);
                     
-                    if (user != null) {
-                        weChatUser.setNickname(userInfo.getNickname());
-                        weChatUser.setAvatar(userInfo.getHeadimgurl());
-                        weChatUser.setGender(userInfo.getSex());
-                        weChatUser.setCountry(userInfo.getCountry());
-                        weChatUser.setProvince(userInfo.getProvince());
-                        weChatUser.setCity(userInfo.getCity());
-                        weChatUser.setLastLoginTime(LocalDateTime.now());
-                        weChatUserMapper.updateByOpenid(weChatUser);
-                        
-                        log.info("微信登录成功，用户: {}", user.getUsername());
-                        
-                        String token = jwtService.generateToken(user.getUsername());
-                        
-                        Map<String, Object> result = new HashMap<>();
-                        result.put("success", true);
-                        result.put("token", token);
-                        result.put("user", user);
-                        result.put("isNewUser", false);
-                        
-                        return result;
-                    }
+                    log.info("微信登录成功，用户: {}", user.getUsername());
+                    
+                    String token = jwtService.generateToken(user.getUsername());
+                    
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("success", true);
+                    result.put("token", token);
+                    result.put("user", user);
+                    result.put("needBind", false);
+                    
+                    return result;
                 }
             }
             
-            log.info("创建新用户或绑定现有用户，openid: {}", openid);
+            log.info("微信用户未绑定，返回绑定信息，openid: {}", openid);
             
-            user = new User();
-            user.setUsername("wx_" + openid.substring(0, 8));
-            user.setPassword("$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi");
-            user.setName(userInfo.getNickname());
-            user.setRoleId(1L);
-            user.setPhone(userInfo.getNickname());
-            user.setStatus(1);
-            
-            userMapper.insert(user);
-            
-            log.info("新用户创建成功，用户ID: {}", user.getId());
-            
-            weChatUser = new WeChatUser();
-            weChatUser.setUserId(user.getId());
-            weChatUser.setOpenid(openid);
-            weChatUser.setUnionid(userInfo.getUnionid());
-            weChatUser.setNickname(userInfo.getNickname());
-            weChatUser.setAvatar(userInfo.getHeadimgurl());
-            weChatUser.setGender(userInfo.getSex());
-            weChatUser.setCountry(userInfo.getCountry());
-            weChatUser.setProvince(userInfo.getProvince());
-            weChatUser.setCity(userInfo.getCity());
-            weChatUser.setLanguage("zh_CN");
-            weChatUser.setSubscribeStatus(1);
-            weChatUser.setLastLoginTime(LocalDateTime.now());
-            
-            weChatUserMapper.insert(weChatUser);
-            
-            log.info("微信用户信息保存成功，ID: {}", weChatUser.getId());
-            
-            String token = jwtService.generateToken(user.getUsername());
+            if (weChatUser == null) {
+                weChatUser = new WeChatUser();
+                weChatUser.setOpenid(openid);
+                weChatUser.setUnionid(userInfo.getUnionid());
+                weChatUser.setNickname(userInfo.getNickname());
+                weChatUser.setAvatar(userInfo.getHeadimgurl());
+                weChatUser.setGender(userInfo.getSex());
+                weChatUser.setCountry(userInfo.getCountry());
+                weChatUser.setProvince(userInfo.getProvince());
+                weChatUser.setCity(userInfo.getCity());
+                weChatUser.setLanguage("zh_CN");
+                weChatUser.setSubscribeStatus(1);
+                weChatUser.setLastLoginTime(LocalDateTime.now());
+                
+                weChatUserMapper.insert(weChatUser);
+                
+                log.info("微信用户信息保存成功，ID: {}", weChatUser.getId());
+            } else {
+                weChatUser.setNickname(userInfo.getNickname());
+                weChatUser.setAvatar(userInfo.getHeadimgurl());
+                weChatUser.setGender(userInfo.getSex());
+                weChatUser.setCountry(userInfo.getCountry());
+                weChatUser.setProvince(userInfo.getProvince());
+                weChatUser.setCity(userInfo.getCity());
+                weChatUser.setLastLoginTime(LocalDateTime.now());
+                weChatUserMapper.updateByOpenid(weChatUser);
+            }
             
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("token", token);
-            result.put("user", user);
-            result.put("isNewUser", true);
+            result.put("needBind", true);
+            result.put("openid", openid);
+            result.put("nickname", userInfo.getNickname());
+            result.put("avatar", userInfo.getHeadimgurl());
             
             return result;
             

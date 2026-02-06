@@ -37,10 +37,10 @@
         </el-form>
       </div>
 
-      <div v-if="loginMode === 'wechat'" class="login-content wechat-login">
+      <div v-if="loginMode === 'wechat' && !needBind" class="login-content wechat-login">
         <div class="wechat-login-info">
           <p>使用微信快速登录</p>
-          <p class="tip">首次登录将自动创建账号</p>
+          <p class="tip">首次登录需要绑定员工账号</p>
         </div>
         <el-button type="success" @click="handleWeChatLogin" class="wechat-button" :loading="loading">
           <svg class="wechat-icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
@@ -49,6 +49,33 @@
           </svg>
           {{ loading ? '登录中...' : '微信一键登录' }}
         </el-button>
+      </div>
+
+      <div v-if="needBind" class="login-content bind-form">
+        <div class="wechat-info">
+          <img :src="wechatInfo.avatar" alt="微信头像" class="wechat-avatar">
+          <p class="wechat-nickname">{{ wechatInfo.nickname }}</p>
+          <p class="bind-tip">请绑定员工账号以完成登录</p>
+        </div>
+        
+        <el-form :model="bindForm" :rules="bindRules" ref="bindFormRef" label-width="80px">
+          <el-form-item label="员工账号" prop="username">
+            <el-input v-model="bindForm.username" placeholder="请输入员工账号" />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input v-model="bindForm.password" type="password" placeholder="请输入密码" show-password />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleBindUser" class="bind-button" :loading="loading">
+              {{ loading ? '绑定中...' : '绑定并登录' }}
+            </el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="text" @click="cancelBind" class="cancel-button">
+              取消绑定
+            </el-button>
+          </el-form-item>
+        </el-form>
       </div>
     </div>
   </div>
@@ -63,19 +90,41 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const route = useRoute()
 const loginFormRef = ref(null)
+const bindFormRef = ref(null)
 const loading = ref(false)
 const loginMode = ref('password')
 const isWeChat = ref(false)
 const isHarmonyOS = ref(false)
+const needBind = ref(false)
 
 const loginForm = reactive({
   username: '',
   password: ''
 })
 
+const bindForm = reactive({
+  username: '',
+  password: ''
+})
+
+const wechatInfo = reactive({
+  openid: '',
+  nickname: '',
+  avatar: ''
+})
+
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' }
+  ]
+}
+
+const bindRules = {
+  username: [
+    { required: true, message: '请输入员工账号', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' }
@@ -257,35 +306,39 @@ const handleWeChatCallback = async () => {
       const data = await response.json()
       
       if (data.success) {
-        const user = data.user
-        const token = data.token
-        
-        if (user.role) {
-          user.role = user.role.toLowerCase()
-        }
-        
-        localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(user))
-        
-        let redirectPath = '/login'
-        const role = user.role ? user.role : ''
-        switch (role) {
-          case 'employee':
-            redirectPath = '/employee/order'
-            break
-          case 'chef':
-            redirectPath = '/chef/order-status'
-            break
-          case 'admin':
-            redirectPath = '/admin/system-config'
-            break
-        }
-        
-        router.push(redirectPath)
-        ElMessage.success('登录成功')
-        
-        if (data.isNewUser) {
-          ElMessage.info('欢迎使用！您的账号已自动创建')
+        if (data.needBind) {
+          needBind.value = true
+          wechatInfo.openid = data.openid
+          wechatInfo.nickname = data.nickname
+          wechatInfo.avatar = data.avatar
+          ElMessage.info('首次登录，请绑定员工账号')
+        } else {
+          const user = data.user
+          const token = data.token
+          
+          if (user.role) {
+            user.role = user.role.toLowerCase()
+          }
+          
+          localStorage.setItem('token', token)
+          localStorage.setItem('user', JSON.stringify(user))
+          
+          let redirectPath = '/login'
+          const role = user.role ? user.role : ''
+          switch (role) {
+            case 'employee':
+              redirectPath = '/employee/order'
+              break
+            case 'chef':
+              redirectPath = '/chef/order-status'
+              break
+            case 'admin':
+              redirectPath = '/admin/system-config'
+              break
+          }
+          
+          router.push(redirectPath)
+          ElMessage.success('登录成功')
         }
       } else {
         ElMessage.error(data?.message || '微信登录失败')
@@ -297,6 +350,86 @@ const handleWeChatCallback = async () => {
       loading.value = false
     }
   }
+}
+
+const handleBindUser = async () => {
+  if (!bindFormRef.value) return
+  
+  try {
+    bindFormRef.value.validate(async (valid) => {
+      if (valid) {
+        loading.value = true
+        
+        try {
+          const response = await fetch('/api/wechat/bind', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              openid: wechatInfo.openid,
+              username: bindForm.username,
+              password: bindForm.password
+            })
+          })
+          
+          const data = await response.json()
+          
+          if (data.success) {
+            const user = data.user
+            const token = data.token
+            
+            if (user.role) {
+              user.role = user.role.toLowerCase()
+            }
+            
+            localStorage.setItem('token', token)
+            localStorage.setItem('user', JSON.stringify(user))
+            
+            let redirectPath = '/login'
+            const role = user.role ? user.role : ''
+            switch (role) {
+              case 'employee':
+                redirectPath = '/employee/order'
+                break
+              case 'chef':
+                redirectPath = '/chef/order-status'
+                break
+              case 'admin':
+                redirectPath = '/admin/system-config'
+                break
+            }
+            
+            router.push(redirectPath)
+            ElMessage.success('绑定成功，已登录')
+          } else {
+            ElMessage.error(data?.message || '绑定失败')
+          }
+        } catch (error) {
+          console.error('绑定失败:', error)
+          ElMessage.error('绑定失败，请检查员工账号和密码')
+        } finally {
+          loading.value = false
+        }
+      } else {
+        ElMessage.error('请填写完整的员工账号和密码')
+      }
+    })
+  } catch (error) {
+    console.error('绑定流程错误:', error)
+    ElMessage.error('绑定失败，请刷新页面重试')
+    loading.value = false
+  }
+}
+
+const cancelBind = () => {
+  needBind.value = false
+  bindForm.username = ''
+  bindForm.password = ''
+  wechatInfo.openid = ''
+  wechatInfo.nickname = ''
+  wechatInfo.avatar = ''
+  ElMessage.info('已取消绑定')
 }
 </script>
 
@@ -394,6 +527,55 @@ const handleWeChatCallback = async () => {
 
 .login-button {
   width: 100%;
+}
+
+.bind-form {
+  padding: 10px 0;
+}
+
+.wechat-info {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+}
+
+.wechat-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.wechat-nickname {
+  font-size: 18px;
+  font-weight: bold;
+  color: #303133;
+  margin: 10px 0;
+}
+
+.bind-tip {
+  font-size: 14px;
+  color: #606266;
+  margin: 5px 0;
+}
+
+.bind-button {
+  width: 100%;
+  height: 45px;
+  font-size: 16px;
+}
+
+.cancel-button {
+  width: 100%;
+  color: #909399;
+}
+
+.cancel-button:hover {
+  color: #409eff;
 }
 
 @media (max-width: 768px) {
