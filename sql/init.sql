@@ -7,6 +7,7 @@ USE canteen_ordering_system;
 DROP TABLE IF EXISTS `operation_log`;
 DROP TABLE IF EXISTS `order`;
 DROP TABLE IF EXISTS `meal_type`;
+DROP TABLE IF EXISTS `wechat_user`;
 DROP TABLE IF EXISTS `user`;
 DROP TABLE IF EXISTS `department`;
 DROP TABLE IF EXISTS `role`;
@@ -62,6 +63,28 @@ CREATE TABLE IF NOT EXISTS `user` (
   FOREIGN KEY (`department_id`) REFERENCES `department`(`id`),
   FOREIGN KEY (`restaurant_id`) REFERENCES `restaurant`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 创建微信用户表
+CREATE TABLE IF NOT EXISTS `wechat_user` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `user_id` BIGINT NULL COMMENT '关联的用户ID（如果已绑定）',
+  `openid` VARCHAR(100) UNIQUE NOT NULL COMMENT '微信OpenID',
+  `unionid` VARCHAR(100) NULL COMMENT '微信UnionID（如果有）',
+  `nickname` VARCHAR(100) NULL COMMENT '微信昵称',
+  `avatar` VARCHAR(500) NULL COMMENT '微信头像URL',
+  `gender` TINYINT NULL COMMENT '性别（0：未知，1：男，2：女）',
+  `country` VARCHAR(50) NULL COMMENT '国家',
+  `province` VARCHAR(50) NULL COMMENT '省份',
+  `city` VARCHAR(50) NULL COMMENT '城市',
+  `language` VARCHAR(20) NULL COMMENT '语言',
+  `phone` VARCHAR(20) NULL COMMENT '手机号',
+  `subscribe_status` TINYINT NOT NULL DEFAULT 0 COMMENT '关注状态（0：未关注，1：已关注）',
+  `subscribe_time` DATETIME NULL COMMENT '关注时间',
+  `last_login_time` DATETIME NULL COMMENT '最后登录时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='微信用户信息表';
 
 -- 创建餐食类型表
 CREATE TABLE IF NOT EXISTS `meal_type` (
@@ -139,7 +162,9 @@ INSERT INTO `meal_type` (`name`, `price`) VALUES
 -- 初始化系统配置数据
 INSERT INTO `system_config` (`config_key`, `config_value`, `description`) VALUES
 ('lock_time', '16:00', '锁单时间，超过此时间不能预订明天的餐食'),
-('system_name', '单位内部饭堂订餐系统', '系统名称');
+('system_name', '单位内部饭堂订餐系统', '系统名称'),
+('wechat_login_enabled', '1', '微信登录功能是否启用（1：启用，0：禁用）'),
+('wechat_login_mode', 'auto', '微信登录模式（auto：自动检测，force：强制微信，manual：手动选择）');
 
 -- 初始化部门数据
 INSERT INTO `department` (`name`, `description`) VALUES
