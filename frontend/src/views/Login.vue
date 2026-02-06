@@ -66,6 +66,7 @@ const loginFormRef = ref(null)
 const loading = ref(false)
 const loginMode = ref('password')
 const isWeChat = ref(false)
+const isHarmonyOS = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -97,8 +98,12 @@ const checkBrowser = async () => {
     const data = await response.json()
     if (data.success) {
       isWeChat.value = data.isWeChat
+      isHarmonyOS.value = data.isHarmonyOS
+      
       if (isWeChat.value) {
         loginMode.value = 'wechat'
+      } else if (isHarmonyOS.value) {
+        loginMode.value = 'password'
       }
     }
   } catch (error) {
@@ -405,6 +410,26 @@ const handleWeChatCallback = async () => {
   .tab-item {
     font-size: 13px;
     padding: 8px 0;
+  }
+}
+
+/* 鸿蒙系统适配 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) and (min-resolution: 192dpi) {
+  .login-form {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  .login-button,
+  .wechat-button {
+    border-radius: 8px;
+  }
+}
+
+/* 鸿蒙系统安全区域适配 */
+@supports (padding: max(0px)) {
+  .login-container {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 }
 </style>

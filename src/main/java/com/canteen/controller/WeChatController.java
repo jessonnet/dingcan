@@ -130,10 +130,15 @@ public class WeChatController {
     public ResponseEntity<Map<String, Object>> checkBrowser(@RequestHeader("User-Agent") String userAgent) {
         Map<String, Object> result = new HashMap<>();
         
-        boolean isWeChat = userAgent.toLowerCase().contains("micromessenger");
+        String userAgentLower = userAgent.toLowerCase();
+        boolean isWeChat = userAgentLower.contains("micromessenger");
+        boolean isHarmonyOS = userAgentLower.contains("harmonyos") || 
+                              userAgentLower.contains("huaweibrowser") || 
+                              userAgentLower.contains("huawei");
         
         result.put("success", true);
         result.put("isWeChat", isWeChat);
+        result.put("isHarmonyOS", isHarmonyOS);
         result.put("userAgent", userAgent);
         
         return ResponseEntity.ok(result);

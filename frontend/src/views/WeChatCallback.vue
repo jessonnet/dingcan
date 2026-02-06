@@ -174,4 +174,25 @@ const goToLogin = () => {
     padding: 30px 20px;
   }
 }
+
+/* 鸿蒙系统适配 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) and (min-resolution: 192dpi) {
+  .callback-content {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  .loading-state,
+  .error-state,
+  .success-state {
+    min-height: 220px;
+  }
+}
+
+/* 鸿蒙系统安全区域适配 */
+@supports (padding: max(0px)) {
+  .callback-container {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
 </style>

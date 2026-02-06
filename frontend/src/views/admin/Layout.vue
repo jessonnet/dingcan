@@ -342,4 +342,27 @@ onMounted(() => {
 .el-dropdown-menu__item .el-icon {
   color: #606266;
 }
+
+/* 鸿蒙系统适配 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) and (min-resolution: 192dpi) {
+  .el-dropdown {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  .el-button {
+    border-radius: 8px;
+  }
+}
+
+/* 鸿蒙系统安全区域适配 */
+@supports (padding: max(0px)) {
+  .el-aside {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .el-header {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
 </style>

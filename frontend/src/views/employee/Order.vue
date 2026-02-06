@@ -364,4 +364,23 @@ onMounted(() => {
     padding: 8px 0;
   }
 }
+
+/* 鸿蒙系统适配 */
+@media screen and (-webkit-min-device-pixel-ratio: 2) and (min-resolution: 192dpi) {
+  .el-card {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  .el-button {
+    border-radius: 8px;
+  }
+}
+
+/* 鸿蒙系统安全区域适配 */
+@supports (padding: max(0px)) {
+  .order-container {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
 </style>
