@@ -27,4 +27,40 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         return systemConfig != null ? systemConfig.getConfigValue() : null;
     }
 
+    /**
+     * 检查微信登录功能是否启用
+     * @return true表示启用，false表示禁用
+     */
+    @Override
+    public boolean isWeChatLoginEnabled() {
+        String enabled = getConfigValue("wechat_login_enabled");
+        return "1".equals(enabled);
+    }
+
+    /**
+     * 获取微信登录模式
+     * @return 登录模式（auto：自动检测，force：强制微信，manual：手动选择）
+     */
+    @Override
+    public String getWeChatLoginMode() {
+        String mode = getConfigValue("wechat_login_mode");
+        return mode != null ? mode : "auto";
+    }
+
+    /**
+     * 更新系统配置
+     * @param configKey 配置键
+     * @param configValue 配置值
+     * @return 是否更新成功
+     */
+    @Override
+    public boolean updateConfig(String configKey, String configValue) {
+        SystemConfig systemConfig = systemConfigMapper.selectByConfigKey(configKey);
+        if (systemConfig != null) {
+            systemConfig.setConfigValue(configValue);
+            return systemConfigMapper.updateById(systemConfig) > 0;
+        }
+        return false;
+    }
+
 }

@@ -34,14 +34,21 @@ public class WeChatAuthService {
     @Autowired
     private JwtService jwtService;
     
+    @Autowired
+    private SystemConfigService systemConfigService;
+    
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     public String getAuthUrl() {
+        if (!systemConfigService.isWeChatLoginEnabled()) {
+            log.warn("微信登录功能已禁用");
+            throw new RuntimeException("微信登录功能已禁用");
+        }
         return weChatConfig.getAuthUrl();
     }
     
-    public WeChatAuthResponse getAccessToken(String code) {
+    private WeChatAuthResponse getAccessToken(String code) {
         try {
             String url = weChatConfig.getTokenUrl() + 
                 "?appid=" + weChatConfig.getAppId() +
@@ -70,7 +77,7 @@ public class WeChatAuthService {
         }
     }
     
-    public WeChatUserInfo getUserInfo(String accessToken, String openid) {
+    private WeChatUserInfo getUserInfo(String accessToken, String openid) {
         try {
             String url = weChatConfig.getUserInfoUrl() + 
                 "?access_token=" + accessToken +
@@ -100,6 +107,15 @@ public class WeChatAuthService {
     
     public Map<String, Object> wechatLogin(String code) {
         try {
+            if (!systemConfigService.isWeChatLoginEnabled()) {
+                log.warn("微信登录功能已禁用");
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", false);
+                result.put("message", "微信登录功能已禁用，请使用账号密码登录");
+                result.put("fallbackToPassword", true);
+                return result;
+            }
+            
             log.info("开始微信登录流程，code: {}", code);
             
             WeChatAuthResponse authResponse = getAccessToken(code);
@@ -177,6 +193,12 @@ public class WeChatAuthService {
             
             return result;
             
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("微信登录功能已禁用")) {
+                throw e;
+            }
+            log.error("微信登录失败", e);
+            throw new RuntimeException("微信登录失败: " + e.getMessage());
         } catch (Exception e) {
             log.error("微信登录失败", e);
             throw new RuntimeException("微信登录失败: " + e.getMessage());

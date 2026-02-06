@@ -3,7 +3,18 @@
     <div class="login-form">
       <h2>单位内部饭堂订餐系统</h2>
       
-      <div class="login-tabs">
+      <div v-if="!wechatLoginEnabled" class="login-notice">
+        <el-alert
+          title="系统提示"
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          微信登录功能已禁用，请使用账号密码登录
+        </el-alert>
+      </div>
+      
+      <div class="login-tabs" v-if="wechatLoginEnabled && wechatLoginMode === 'manual'">
         <div 
           class="tab-item" 
           :class="{ active: loginMode === 'password' }"
@@ -15,10 +26,20 @@
           class="tab-item" 
           :class="{ active: loginMode === 'wechat' }"
           @click="loginMode = 'wechat'"
-          v-if="isWeChat"
         >
           微信登录
         </div>
+      </div>
+      
+      <div v-if="wechatLoginEnabled && wechatLoginMode === 'force'" class="login-notice">
+        <el-alert
+          title="系统提示"
+          type="success"
+          :closable="false"
+          show-icon
+        >
+          当前使用微信登录模式
+        </el-alert>
       </div>
 
       <div v-if="loginMode === 'password'" class="login-content">
@@ -96,6 +117,9 @@ const loginMode = ref('password')
 const isWeChat = ref(false)
 const isHarmonyOS = ref(false)
 const needBind = ref(false)
+const wechatLoginEnabled = ref(true)
+const wechatLoginMode = ref('auto')
+const configLoading = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -132,9 +156,26 @@ const bindRules = {
 }
 
 onMounted(async () => {
+  await loadWeChatConfig()
   await checkBrowser()
   handleWeChatCallback()
 })
+
+const loadWeChatConfig = async () => {
+  try {
+    configLoading.value = true
+    const response = await axios.get('/api/system/config/wechat')
+    if (response.success) {
+      wechatLoginEnabled.value = response.data.enabled
+      wechatLoginMode.value = response.data.mode || 'auto'
+      console.log('微信登录配置:', wechatLoginEnabled.value, wechatLoginMode.value)
+    }
+  } catch (error) {
+    console.error('加载微信登录配置失败:', error)
+  } finally {
+    configLoading.value = false
+  }
+}
 
 const checkBrowser = async () => {
   try {
@@ -149,9 +190,16 @@ const checkBrowser = async () => {
       isWeChat.value = data.isWeChat
       isHarmonyOS.value = data.isHarmonyOS
       
-      if (isWeChat.value) {
+      console.log('浏览器环境:', isWeChat.value, isHarmonyOS.value)
+      console.log('微信登录配置:', wechatLoginEnabled.value, wechatLoginMode.value)
+      
+      if (!wechatLoginEnabled.value) {
+        loginMode.value = 'password'
+      } else if (wechatLoginMode.value === 'force') {
         loginMode.value = 'wechat'
-      } else if (isHarmonyOS.value) {
+      } else if (wechatLoginMode.value === 'auto' && isWeChat.value) {
+        loginMode.value = 'wechat'
+      } else {
         loginMode.value = 'password'
       }
     }
@@ -454,6 +502,10 @@ const cancelBind = () => {
   text-align: center;
   margin-bottom: 30px;
   color: #409eff;
+}
+
+.login-notice {
+  margin-bottom: 20px;
 }
 
 .login-tabs {

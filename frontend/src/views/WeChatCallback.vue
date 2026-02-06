@@ -103,7 +103,11 @@ const handleWeChatCallback = async () => {
         router.push(redirectPath)
       }, 1000)
     } else {
-      error.value = data?.message || '微信登录失败'
+      if (data.fallbackToPassword) {
+        error.value = '微信登录功能已禁用，请使用账号密码登录'
+      } else {
+        error.value = data?.message || '微信登录失败'
+      }
       loading.value = false
     }
   } catch (err) {

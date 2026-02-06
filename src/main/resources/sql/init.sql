@@ -162,7 +162,9 @@ INSERT INTO `meal_type` (`name`, `price`) VALUES
 -- 初始化系统配置数据
 INSERT INTO `system_config` (`config_key`, `config_value`, `description`) VALUES
 ('lock_time', '16:00', '锁单时间，超过此时间不能预订明天的餐食'),
-('system_name', '单位内部饭堂订餐系统', '系统名称');
+('system_name', '单位内部饭堂订餐系统', '系统名称'),
+('wechat_login_enabled', '1', '微信登录功能是否启用（1：启用，0：禁用）'),
+('wechat_login_mode', 'auto', '微信登录模式（auto：自动检测，force：强制微信，manual：手动选择）');
 
 -- 初始化部门数据
 INSERT INTO `department` (`name`, `description`) VALUES
