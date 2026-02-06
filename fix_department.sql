@@ -1,1 +1,0 @@
-ALTER TABLE user ADD COLUMN department_id BIGINT NULL COMMENT '部门ID' AFTER role_id;

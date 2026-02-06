@@ -14,6 +14,14 @@ const routes = [
     }
   },
   {
+    path: '/wechat/callback',
+    name: 'WeChatCallback',
+    component: () => import('../views/WeChatCallback.vue'),
+    meta: {
+      requiresAuth: false
+    }
+  },
+  {
     path: '/employee',
     name: 'Employee',
     component: () => import('../views/employee/Layout.vue'),

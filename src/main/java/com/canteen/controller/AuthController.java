@@ -5,6 +5,7 @@ import com.canteen.entity.Department;
 import com.canteen.entity.User;
 import com.canteen.mapper.DepartmentMapper;
 import com.canteen.service.UserService;
+import com.canteen.service.LoginSecurityService;
 import com.canteen.utils.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
+    @Autowired
+    private LoginSecurityService loginSecurityService;
+
     /**
      * 登录
      * @param loginData 登录数据
@@ -51,12 +55,32 @@ public class AuthController {
         
         System.out.println("登录请求 - 用户名: " + username + ", 密码: " + (password != null ? "已提供" : "未提供"));
         
-        // 根据用户名查询用户
+        if (username == null || username.trim().isEmpty()) {
+            result.put("success", false);
+            result.put("message", "请输入用户名");
+            return result;
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            result.put("success", false);
+            result.put("message", "请输入密码");
+            return result;
+        }
+        
+        if (loginSecurityService.isAccountLocked(username)) {
+            result.put("success", false);
+            result.put("message", "账户已被锁定，请30分钟后再试");
+            return result;
+        }
+        
         User user = userService.findByUsername(username);
         if (user == null) {
             System.out.println("登录失败 - 用户不存在: " + username);
+            loginSecurityService.recordLoginAttempt(username, false);
+            int remainingAttempts = loginSecurityService.getRemainingAttempts(username);
             result.put("success", false);
             result.put("message", "用户名或密码错误");
+            result.put("remainingAttempts", remainingAttempts);
             return result;
         }
         
@@ -64,24 +88,25 @@ public class AuthController {
         System.out.println("数据库密码: " + user.getPassword());
         System.out.println("输入密码: " + password);
         
-        // 验证密码
         boolean passwordMatches = passwordEncoder.matches(password, user.getPassword());
         System.out.println("密码验证结果: " + passwordMatches);
         
         if (!passwordMatches) {
             System.out.println("登录失败 - 密码不匹配");
+            loginSecurityService.recordLoginAttempt(username, false);
+            int remainingAttempts = loginSecurityService.getRemainingAttempts(username);
             result.put("success", false);
             result.put("message", "用户名或密码错误");
+            result.put("remainingAttempts", remainingAttempts);
             return result;
         }
         
-        // 生成JWT令牌
+        loginSecurityService.recordLoginAttempt(username, true);
+        
         String token = jwtUtils.generateToken(user.getUsername());
         
-        // 获取用户角色
         String roleName = userService.getRoleNameByUserId(user.getId());
         
-        // 获取部门名称
         String departmentName = "";
         if (user.getDepartmentId() != null) {
             Department department = departmentMapper.selectById(user.getDepartmentId());
@@ -90,7 +115,6 @@ public class AuthController {
             }
         }
         
-        // 构建返回数据
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", user.getId());
         userInfo.put("username", user.getUsername());
@@ -178,7 +202,6 @@ public class AuthController {
         String currentPassword = passwordData.get("currentPassword");
         String newPassword = passwordData.get("newPassword");
         
-        // 参数校验
         if (currentPassword == null || currentPassword.trim().isEmpty()) {
             result.put("success", false);
             result.put("message", "请输入当前密码");
@@ -197,7 +220,12 @@ public class AuthController {
             return result;
         }
         
-        // 从JWT令牌中获取用户名
+        if (!loginSecurityService.validatePasswordStrength(newPassword)) {
+            result.put("success", false);
+            result.put("message", "新密码必须包含字母和数字");
+            return result;
+        }
+        
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
             result.put("success", false);
@@ -208,7 +236,6 @@ public class AuthController {
         token = token.substring(7);
         String username = jwtUtils.getUsernameFromToken(token);
         
-        // 根据用户名查询用户
         User user = userService.findByUsername(username);
         if (user == null) {
             result.put("success", false);
@@ -216,14 +243,12 @@ public class AuthController {
             return result;
         }
         
-        // 验证当前密码
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             result.put("success", false);
             result.put("message", "当前密码错误");
             return result;
         }
         
-        // 更新密码
         String encodedNewPassword = passwordEncoder.encode(newPassword);
         user.setPassword(encodedNewPassword);
         boolean updateSuccess = userService.updateById(user);

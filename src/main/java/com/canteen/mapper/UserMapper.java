@@ -19,6 +19,14 @@ public interface UserMapper extends BaseMapper<User> {
     User selectByUsername(String username);
 
     /**
+     * 根据ID查询用户
+     * @param id 用户ID
+     * @return 用户信息
+     */
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(Long id);
+
+    /**
      * 查询所有用户（排除balance字段）
      * @return 用户列表
      */
