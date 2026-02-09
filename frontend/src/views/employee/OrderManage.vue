@@ -2,7 +2,7 @@
   <div class="order-manage-container">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2 class="page-title">在线订餐</h2>
+      <h2 class="page-title">订单管理</h2>
       <el-radio-group v-model="viewMode" size="small" class="view-toggle">
         <el-radio-button label="calendar">
           <el-icon><Calendar /></el-icon>
@@ -538,7 +538,7 @@ const currentYearMonth = computed(() => {
   return currentDate.value.format('YYYY年MM月')
 })
 
-const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+const weekDays = ['一', '二', '三', '四', '五', '六', '日']
 
 // 日历天数计算 - 优化状态显示
 const calendarDays = computed(() => {
@@ -547,8 +547,9 @@ const calendarDays = computed(() => {
   
   const firstDay = dayjs().year(year).month(month).date(1)
   const lastDay = firstDay.endOf('month')
-  const startOfWeek = firstDay.startOf('week')
-  const endOfWeek = lastDay.endOf('week')
+  // 计算当月第一天所在周的周一
+  const startOfWeek = firstDay.day() === 0 ? firstDay.subtract(6, 'day') : firstDay.subtract(firstDay.day() - 1, 'day')
+  const endOfWeek = lastDay.day() === 0 ? lastDay.add(0, 'day') : lastDay.add(7 - lastDay.day(), 'day')
   
   const days = []
   let current = startOfWeek
@@ -1001,8 +1002,10 @@ const formatDay = (dateStr) => {
 }
 
 const getWeekday = (dateStr) => {
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  return weekdays[dayjs(dateStr).day()]
+  const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+  const day = dayjs(dateStr).day()
+  // 调整星期日的索引（0 → 6）
+  return weekdays[day === 0 ? 6 : day - 1]
 }
 
 // ============ 数据加载 ============
@@ -1030,8 +1033,9 @@ const loadAllOrders = async () => {
     const month = currentDate.value.month()
     const firstDay = dayjs().year(year).month(month).date(1)
     const lastDay = firstDay.endOf('month')
-    const startOfWeek = firstDay.startOf('week')
-    const endOfWeek = lastDay.endOf('week')
+    // 计算当月第一天所在周的周一
+    const startOfWeek = firstDay.day() === 0 ? firstDay.subtract(6, 'day') : firstDay.subtract(firstDay.day() - 1, 'day')
+    const endOfWeek = lastDay.day() === 0 ? lastDay.add(0, 'day') : lastDay.add(7 - lastDay.day(), 'day')
     
     // 加载完整日历范围的订单数据
     const startDate = startOfWeek.format('YYYY-MM-DD')

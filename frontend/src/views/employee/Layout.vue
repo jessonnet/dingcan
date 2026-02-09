@@ -2,7 +2,7 @@
   <el-container class="employee-layout">
     <el-header class="mobile-header">
       <div class="header-left">
-        <h1 class="system-title">食堂订餐</h1>
+        <h1 class="system-title">单位内部饭堂订餐系统</h1>
       </div>
       <div class="header-right">
         <el-dropdown trigger="click" @command="handleCommand">

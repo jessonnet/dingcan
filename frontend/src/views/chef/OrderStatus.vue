@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>订餐情况</span>
+          <span>订单管理</span>
           <el-date-picker
             v-model="orderDate"
             type="date"

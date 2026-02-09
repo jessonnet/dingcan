@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>在线订餐</span>
+          <span>订单管理</span>
         </div>
       </template>
       <div class="order-content">
