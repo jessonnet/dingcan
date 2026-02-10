@@ -64,4 +64,14 @@ public class SystemConfigServiceImpl extends ServiceImpl<SystemConfigMapper, Sys
         return false;
     }
 
+    /**
+     * 根据配置键获取配置对象
+     * @param configKey 配置键
+     * @return 配置对象
+     */
+    @Override
+    public SystemConfig getByConfigKey(String configKey) {
+        return systemConfigMapper.selectByConfigKey(configKey);
+    }
+
 }

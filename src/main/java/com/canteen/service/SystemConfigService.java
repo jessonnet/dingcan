@@ -35,4 +35,11 @@ public interface SystemConfigService extends IService<SystemConfig> {
      */
     boolean updateConfig(String configKey, String configValue);
 
+    /**
+     * 根据配置键获取配置对象
+     * @param configKey 配置键
+     * @return 配置对象
+     */
+    SystemConfig getByConfigKey(String configKey);
+
 }

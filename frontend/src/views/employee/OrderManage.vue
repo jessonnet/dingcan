@@ -487,6 +487,11 @@ const rules = {
   ]
 }
 
+// 系统配置
+const systemConfig = ref({
+  lockTime: '16:00' // 默认值
+})
+
 // 用户信息
 const userDepartmentId = ref(null)
 const userRestaurantId = ref(null)
@@ -625,10 +630,12 @@ const canOrderOnDate = (dateStr) => {
     return false
   }
   
-  // 检查是否已锁定（假设16:00后不能预订明天）
+  // 检查是否已锁定（锁单时间后不能预订明天）
   if (date.isSame(tomorrow, 'day')) {
     const now = dayjs()
-    const lockTime = dayjs().hour(16).minute(0).second(0)
+    const lockTimeStr = systemConfig.value.lockTime || '16:00'
+    const [lockHour, lockMinute] = lockTimeStr.split(':').map(Number)
+    const lockTime = dayjs().hour(lockHour).minute(lockMinute).second(0)
     if (now.isAfter(lockTime)) {
       return false
     }
@@ -646,7 +653,39 @@ const isDateLocked = (dateStr) => {
 const canCancelOrder = (orderDate) => {
   const date = dayjs(orderDate)
   const today = dayjs().startOf('day')
-  return date.isAfter(today)
+  const tomorrow = today.add(1, 'day')
+  
+  // 只能取消明天及以后的订单
+  if (date.isBefore(tomorrow)) {
+    return false
+  }
+  
+  // 检查是否是明天的日期
+  if (date.isSame(tomorrow, 'day')) {
+    // 明天的订单需要检查是否超过锁单时间
+    const now = dayjs()
+    const lockTimeStr = systemConfig.value.lockTime || '16:00'
+    const [lockHour, lockMinute] = lockTimeStr.split(':').map(Number)
+    const lockTime = dayjs().hour(lockHour).minute(lockMinute).second(0)
+    if (now.isAfter(lockTime)) {
+      return false
+    }
+  }
+  
+  return true
+}
+
+// 加载系统配置
+const loadSystemConfig = async () => {
+  try {
+    const response = await axios.get('/api/system/config/order')
+    if (response.success && response.data) {
+      systemConfig.value.lockTime = response.data.lockTime || '16:00'
+    }
+  } catch (error) {
+    console.error('加载系统配置失败:', error)
+    // 加载失败时使用默认值
+  }
 }
 
 // 加载餐厅列表
@@ -736,7 +775,7 @@ const handleDateClick = (day) => {
         cancelOrderVisible.value = true
       } else {
         ElMessage.info({
-          message: '该订单已过期，无法取消',
+          message: '无法取消订餐',
           duration: 2000
         })
       }
@@ -754,6 +793,13 @@ const handleDateClick = (day) => {
     }
     
     createOrderVisible.value = true
+  } else if (!day.canOrder && !day.isLocked) {
+    // 超过锁单时间，无法订餐
+    ElMessage.warning({
+      message: '当前已超过锁单时间，无法进行订餐操作',
+      duration: 3000,
+      showClose: true
+    })
   }
 }
 
@@ -1085,9 +1131,12 @@ const loadOrderList = async () => {
 }
 
 // ============ 生命周期 ============
-onMounted(() => {
+onMounted(async () => {
   // 先加载临时数据
   loadTempData()
+  
+  // 加载系统配置
+  await loadSystemConfig()
   
   // 加载用户信息和餐厅列表
   loadUserInfo()
@@ -1189,13 +1238,19 @@ watch(viewMode, (newMode) => {
     gap: 4px;
   }
 
+  /* 调整移动端视图切换图标尺寸 */
+  .view-toggle :deep(.el-icon) {
+    font-size: 16px;
+  }
+
   .view-toggle :deep(.el-radio-button) {
-    padding: 3px 6px;
+    padding: 6px 8px;
   }
 
   .view-toggle :deep(.el-radio-button__inner) {
-    padding: 3px 6px;
-    font-size: 11px;
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 3px;
   }
 }
 
@@ -1209,13 +1264,19 @@ watch(viewMode, (newMode) => {
     gap: 3px;
   }
 
+  /* 调整小屏幕移动端视图切换图标尺寸 */
+  .view-toggle :deep(.el-icon) {
+    font-size: 17px;
+  }
+
   .view-toggle :deep(.el-radio-button) {
-    padding: 2px 5px;
+    padding: 7px 9px;
   }
 
   .view-toggle :deep(.el-radio-button__inner) {
-    padding: 2px 5px;
-    font-size: 10px;
+    padding: 7px 11px;
+    font-size: 12px;
+    gap: 3px;
   }
 }
 

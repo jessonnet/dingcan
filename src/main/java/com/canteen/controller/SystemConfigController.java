@@ -42,6 +42,33 @@ public class SystemConfigController {
     private UserService userService;
 
     /**
+     * 获取订单相关配置（公开接口，无需认证）
+     */
+    @GetMapping("/order")
+    public Map<String, Object> getOrderConfig() {
+        try {
+            Map<String, Object> config = new HashMap<>();
+            
+            // 获取锁单时间
+            SystemConfig lockTimeConfig = systemConfigService.getByConfigKey("lock_time");
+            String lockTime = lockTimeConfig != null ? lockTimeConfig.getConfigValue() : "16:00";
+            config.put("lockTime", lockTime);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("data", config);
+            return result;
+            
+        } catch (Exception e) {
+            log.error("获取订单配置失败", e);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "获取订单配置失败: " + e.getMessage());
+            return result;
+        }
+    }
+    
+    /**
      * 获取微信登录配置（公开接口，无需认证）
      */
     @GetMapping("/wechat")
