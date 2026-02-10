@@ -114,7 +114,7 @@ const rules = {
 const loadSystemConfig = async () => {
   try {
     console.log('开始加载系统配置')
-    const response = await axios.get('/api/system/config/list')
+    const response = await axios.get('/api/admin/system-config/list')
     console.log('加载系统配置响应:', response)
     if (response.success) {
       const systemConfigs = response.data
